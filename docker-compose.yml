@@ -1,0 +1,54 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      MAPS4U_DATA_DIR: /var/maps4u
+      MAPS4U_DB_PATH: /var/maps4u/maps4u.db
+      MAPS4U_REDIS_URL: redis://redis:6379/0
+      MAPS4U_QUEUE: celery
+      MAPS4U_ENV: prod
+    volumes:
+      - maps4u_data:/var/maps4u
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["celery", "-A", "maps4u.worker.tasks:celery_app", "worker", "--loglevel=INFO", "--concurrency=1"]
+    environment:
+      MAPS4U_DATA_DIR: /var/maps4u
+      MAPS4U_DB_PATH: /var/maps4u/maps4u.db
+      MAPS4U_REDIS_URL: redis://redis:6379/0
+      MAPS4U_QUEUE: celery
+      MAPS4U_ENV: prod
+    volumes:
+      - maps4u_data:/var/maps4u
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  maps4u_data:
