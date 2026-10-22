@@ -34,6 +34,35 @@ class GeofenceRevisionResponse(BaseModel):
     project_id: str
     is_current: bool
     created_at: str
+    created_by: str | None = None
+    geometry: dict[str, Any] | None = None
+
+
+class ViabilityRequest(BaseModel):
+    geofence: dict[str, Any]
+    paper: Literal["A3", "A4", "A5"]
+    orientation: Literal["landscape", "portrait"]
+    style_ref: str | None = None
+    named_feature_count: int | None = None
+    min_font_override_mm: float | None = None
+
+
+class ViabilityResponse(BaseModel):
+    viable: bool
+    scale_denominator: float
+    natural_scale_denominator: float
+    min_printed_mm: float
+    configured_min_font_mm: float
+    label_density_ratio: float
+    working_crs_epsg: int
+    extent_width_m: float
+    extent_height_m: float
+    area_km2: float
+    map_area_w_mm: float
+    map_area_h_mm: float
+    warnings: list[dict[str, Any]] = Field(default_factory=list)
+    blockers: list[dict[str, Any]] = Field(default_factory=list)
+    choices: list[str] = Field(default_factory=list)
 
 
 class JobCreateRequest(BaseModel):

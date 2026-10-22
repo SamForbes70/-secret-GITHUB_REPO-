@@ -4,19 +4,24 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from maps4u import __version__
 from maps4u.api.routes_jobs import router as jobs_router
 from maps4u.api.routes_projects import router as projects_router
 from maps4u.api.routes_styles import router as styles_router
 from maps4u.api.routes_system import router as system_router
+from maps4u.api.routes_viability import router as viability_router
 from maps4u.core.config import Settings
 from maps4u.core.db import run_migrations
 from maps4u.core.errors import Maps4UError
 from maps4u.core.logging import configure_logging
+
+STATIC_UI_DIR = Path(__file__).resolve().parents[1] / "ui" / "static"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -50,5 +55,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(projects_router)
     app.include_router(jobs_router)
     app.include_router(styles_router)
-    return app
+    app.include_router(viability_router)
 
+    if STATIC_UI_DIR.is_dir():
+        app.mount("/static", StaticFiles(directory=str(STATIC_UI_DIR)), name="static")
+
+        @app.get("/", include_in_schema=False)
+        def serve_index() -> FileResponse:
+            return FileResponse(STATIC_UI_DIR / "index.html")
+
+    return app

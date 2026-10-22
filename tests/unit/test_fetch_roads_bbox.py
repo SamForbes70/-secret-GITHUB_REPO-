@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 import geopandas as gpd
+
 from maps4u.core.config import Settings
 from maps4u.core.models import BBox
 from maps4u.geo.acquire import get_or_fetch
+
 
 def test_fetch_roads_inside_bounding_box_and_cache(test_settings: Settings) -> None:
     bbox = BBox(min_lon=153.085, min_lat=-26.660, max_lon=153.105, max_lat=-26.645)

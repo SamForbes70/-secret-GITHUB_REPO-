@@ -149,4 +149,45 @@ def create_geofence_revision(
         project_id=project_id,
         is_current=True,
         created_at=now,
+        created_by=req.created_by,
+        geometry=json.loads(canon_json),
     )
+
+
+@router.get(
+    "/{project_id}/revisions",
+    response_model=list[GeofenceRevisionResponse],
+)
+def list_geofence_revisions(
+    project_id: str,
+    settings: Settings = Depends(get_settings),
+) -> list[GeofenceRevisionResponse]:
+    with db_session(settings.db_path) as conn:
+        proj = conn.execute(
+            "SELECT project_id FROM map_projects WHERE project_id = ?",
+            (project_id,),
+        ).fetchone()
+        if proj is None:
+            raise Maps4UError(E_NOT_FOUND, f"Project {project_id!r} not found", status_code=404)
+
+        rows = conn.execute(
+            """
+            SELECT revision_id, project_id, geometry_json, created_at, created_by, is_current
+            FROM geofence_revisions
+            WHERE project_id = ?
+            ORDER BY created_at DESC
+            """,
+            (project_id,),
+        ).fetchall()
+
+    return [
+        GeofenceRevisionResponse(
+            revision_id=str(r["revision_id"]),
+            project_id=str(r["project_id"]),
+            is_current=bool(r["is_current"]),
+            created_at=str(r["created_at"]),
+            created_by=r["created_by"],
+            geometry=json.loads(str(r["geometry_json"])),
+        )
+        for r in rows
+    ]

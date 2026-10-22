@@ -40,18 +40,21 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-maps4u = ["core/migrations/*.sql"]
+maps4u = ["core/migrations/*.sql", "ui/static/*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "maps4u.__version__"}
 
 [tool.ruff]
-line-length = 100
+line-length = 128
 target-version = "py312"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "Depends"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

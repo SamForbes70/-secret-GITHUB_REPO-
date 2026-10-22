@@ -1,0 +1,123 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #f5f7fa;
+  color: #1f2937;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.topbar {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.topbar h1 {
+  font-size: 1.15rem;
+}
+.subtitle {
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+.workspace {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.sidebar {
+  width: 390px;
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  padding: 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px;
+  background: #f8fafc;
+}
+.panel h2 {
+  font-size: 0.92rem;
+  margin-bottom: 8px;
+  color: #0f172a;
+}
+label {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+  color: #334155;
+}
+input, select {
+  width: 100%;
+  padding: 6px 8px;
+  margin-top: 3px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+.row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.row > * {
+  flex: 1;
+}
+button {
+  padding: 7px 10px;
+  border: none;
+  border-radius: 4px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+button.secondary {
+  background: #64748b;
+}
+.badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.badge-neutral { background: #475569; }
+.badge-pass { background: #16a34a; }
+.badge-warn { background: #d97706; }
+.badge-block { background: #dc2626; }
+.readout {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin-bottom: 6px;
+}
+.messages-list, .revisions-list {
+  list-style: none;
+  font-size: 0.78rem;
+  margin-bottom: 8px;
+}
+.messages-list li, .revisions-list li {
+  padding: 4px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+.map-container {
+  flex: 1;
+  position: relative;
+}
+#map {
+  width: 100%;
+  height: 100%;
+}

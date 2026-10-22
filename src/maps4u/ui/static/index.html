@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maps4U — Street Map Geofence &amp; Viability Studio</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Maps4U Street Map Production Studio</h1>
+      <span class="subtitle">Geofence Editor, Print-Scale &amp; Legibility Viability Assessment</span>
+    </div>
+    <div id="viability-badge" class="badge badge-neutral">No Geofence Drawn</div>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar">
+      <section class="panel">
+        <h2>1. Map Project</h2>
+        <label>Area Name
+          <input id="area-name" type="text" value="Maroochydore" placeholder="e.g. Maroochydore" />
+        </label>
+        <label>Reference Code
+          <input id="area-ref" type="text" value="MCY-01" placeholder="e.g. MCY-01" />
+        </label>
+        <button id="btn-create-project" type="button">Create / Select Project</button>
+        <div id="project-status" class="meta-note"></div>
+      </section>
+
+      <section class="panel">
+        <h2>2. Paper &amp; Orientation</h2>
+        <div class="row">
+          <label>Paper Size
+            <select id="paper-select">
+              <option value="A3">A3 (420 × 297 mm)</option>
+              <option value="A4" selected>A4 (297 × 210 mm)</option>
+              <option value="A5">A5 (210 × 148 mm)</option>
+            </select>
+          </label>
+          <label>Orientation
+            <select id="orientation-select">
+              <option value="landscape" selected>Landscape</option>
+              <option value="portrait">Portrait</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <button id="btn-preset-mcy" type="button">Load Maroochydore Preset</button>
+          <button id="btn-clear-poly" type="button" class="secondary">Clear Polygon</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>3. Live Scale &amp; Viability Readout</h2>
+        <div id="viability-summary" class="readout">
+          <p>Draw or load a polygon to compute print scale and minimum font legibility.</p>
+        </div>
+        <ul id="viability-messages" class="messages-list"></ul>
+        <div class="row">
+          <button id="btn-save-revision" type="button" disabled>Save Geofence Revision</button>
+          <button id="btn-submit-job" type="button" disabled>Freeze Spec &amp; Create Job</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>4. Geofence Revision History</h2>
+        <ul id="revisions-list" class="revisions-list">
+          <li class="muted">No revisions saved yet.</li>
+        </ul>
+      </section>
+    </aside>
+
+    <section class="map-container">
+      <div id="map"></div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 import socket
 from pathlib import Path
 from typing import Any
+
 import pytest
+
 from maps4u.core.config import Settings
 from maps4u.core.db import run_migrations
 
