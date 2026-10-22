@@ -45,6 +45,7 @@ class Canvas(Protocol):
     def path(self, ops: PathOps, stroke: Stroke | None, fill: Fill | None) -> None: ...
     def text(self, glyphs: list[GlyphPlacement]) -> None: ...
     def embedded_font(self, ttf_path: Path) -> str: ...
+    def measure_text_mm(self, text: str, font_id: str, size_mm: float) -> tuple[float, float]: ...
     def save_pdf(self, path: Path) -> None: ...
 
 
@@ -85,6 +86,10 @@ class RecordingCanvas:
         self.fonts[font_id] = str(ttf_path)
         self.ops_log.append({"op": "embedded_font", "font_id": font_id, "name": ttf_path.name})
         return font_id
+
+    def measure_text_mm(self, text: str, font_id: str, size_mm: float) -> tuple[float, float]:
+        del font_id
+        return (round(max(2.0, len(text) * size_mm * 0.56), 4), round(size_mm * 1.15, 4))
 
     def drawlog_dict(self) -> dict[str, Any]:
         return {

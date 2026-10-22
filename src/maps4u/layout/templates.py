@@ -227,6 +227,9 @@ def load_paper_templates(path: Path | None = None) -> dict[str, PaperTemplate]:
     return resolved
 
 
+load_all_templates = load_paper_templates
+
+
 def get_template(
     paper: PaperSize,
     orientation: Orientation,
