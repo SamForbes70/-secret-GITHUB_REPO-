@@ -8,3 +8,4 @@ var/
 .env
 dist/
 build/
+.coverage

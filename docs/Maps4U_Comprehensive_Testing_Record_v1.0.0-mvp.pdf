@@ -1,0 +1,171 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 5855 >>
+stream
+q
+0.06 0.09 0.16 rg 36 778 523 36 re f
+0.91 0.95 0.99 RG 0.6 w 36 42 523 772 re S
+BT /F2 13.0 Tf 1 1 1 rg 1 0 0 1 46.0 796.0 Tm (MAPS4U STREET MAP SYSTEM \(maps4u-maps\) - COMPREHENSIVE TESTING RECORD) Tj ET
+BT /F1 8.5 Tf 0.82 0.88 0.98 rg 1 0 0 1 46.0 784.0 Tm (Release: v1.0.0-mvp  |  Gates G1-G6: ALL PASSED  |  Tests: 61/61 Passed  |  Coverage: 92% \(2,412 stmts\)) Tj ET
+BT /F2 11.0 Tf 0.12 0.23 0.54 rg 1 0 0 1 46.0 756.0 Tm (1. EXECUTIVE SMOKE & VERIFICATION SUMMARY) Tj ET
+BT /F3 8.0 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 740.0 Tm (Suite / Check                  | Command                                | Result | Key Verified Metrics) Tj ET
+BT /F3 8.0 Tf 0.4 0.4 0.4 rg 1 0 0 1 46.0 730.0 Tm (-------------------------------+----------------------------------------+--------+------------------------------------------------------------) Tj ET
+BT /F3 8.0 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 718.0 Tm (End-to-End Smoke Test          | python scripts/smoke_test.py           | PASS   | status=proof_ready, cache_hit=true, canvas_hash=73726d3c...) Tj ET
+BT /F3 8.0 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 706.0 Tm (Byte & Content Determinism     | python scripts/verify_determinism.py   | PASS   | deterministic=true, content_hash=46ec3295..., pdf=dbc189d1...) Tj ET
+BT /F3 8.0 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 694.0 Tm (Hot SQLite + Bundle Drill      | python scripts/backup_restore_drill.py | PASS   | restored_ok=true, manifest_sha256=true, pdf_sha256=true) Tj ET
+BT /F3 8.0 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 682.0 Tm (Static Linter \(Ruff\)           | ruff check src tests scripts           | PASS   | All checks passed! \(0 errors, 0 warnings\)) Tj ET
+BT /F3 8.0 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 670.0 Tm (Strict Type Checker \(Mypy\)     | mypy src                               | PASS   | Success: no issues found in 46 source files) Tj ET
+BT /F3 8.0 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 658.0 Tm (Full Offline Pytest + Coverage | pytest -v --cov=src/maps4u             | PASS   | 61 passed, 0 failed in 22.65s; 92% total line coverage) Tj ET
+BT /F2 11.0 Tf 0.12 0.23 0.54 rg 1 0 0 1 46.0 632.0 Tm (2. STAGE GATE PROGRESSION \(G1 -> G6\)) Tj ET
+BT /F3 8.0 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 616.0 Tm (Gate | Tag            | Scope & Deliverables Verified                                                   | Tests     | Status) Tj ET
+BT /F3 8.0 Tf 0.4 0.4 0.4 rg 1 0 0 1 46.0 606.0 Tm (-----+----------------+---------------------------------------------------------------------------------+-----------+--------) Tj ET
+BT /F3 8.0 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 594.0 Tm (G1   | v0.1.0-phase0  | Stage 1: FastAPI/Celery scaffold, SQLite WAL, Overpass fetch + 8-layer GPKG     | 14 passed | PASSED) Tj ET
+BT /F3 8.0 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 582.0 Tm (G2   | v0.2.0-stage2  | Stage 2: 6 paper templates \(A3/A4/A5\), 1:N scale & 1.5mm font viability, UI     | 42 passed | PASSED) Tj ET
+BT /F3 8.0 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 570.0 Tm (G3   | v0.3.0-stage3  | Stage 3: CairoCanvas PDF 1.4 vector renderer \(ADR-0001\), mcy/v1 YAML style      | 46 passed | PASSED) Tj ET
+BT /F3 8.0 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 558.0 Tm (G4   | v0.4.0-stage4  | Stage 4: STRtree label collision engine, map furniture, 2-page inset, QA bundle | 54 passed | PASSED) Tj ET
+BT /F3 8.0 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 546.0 Tm (G5   | v0.5.0-stage5  | Stage 5: Full 11-stage job executor, review/approve lock, reproduce\(\), 3 pilots | 58 passed | PASSED) Tj ET
+BT /F3 8.0 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 534.0 Tm (G6   | v1.0.0-mvp     | Stage 6: Multi-stage Dockerfile + compose, runbook, backup drill, full UAT      | 61 passed | PASSED) Tj ET
+BT /F2 11.0 Tf 0.12 0.23 0.54 rg 1 0 0 1 46.0 508.0 Tm (3. THREE-PILOT CARTOGRAPHIC & REPRODUCIBILITY ACCEPTANCE \(S5.T3\)) Tj ET
+BT /F3 8.0 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 492.0 Tm (Pilot Area                      | Format       | Scale Band                | Blockers | Overlaps/Clips | Min Font   | reproduce\(\) Match) Tj ET
+BT /F3 8.0 Tf 0.4 0.4 0.4 rg 1 0 0 1 46.0 482.0 Tm (--------------------------------+--------------+---------------------------+----------+----------------+------------+-------------------) Tj ET
+BT /F3 8.0 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 470.0 Tm (Maroochydore \(MCY Reference\)    | A4-landscape | standard_street \(1:12500\) | 0        | 0 / 0          | >= 1.50 mm | 100% SHA-256 Match) Tj ET
+BT /F3 8.0 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 458.0 Tm (Noosa                           | A3-landscape | detail \(1:7500\)           | 0        | 0 / 0          | >= 1.50 mm | 100% SHA-256 Match) Tj ET
+BT /F3 8.0 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 446.0 Tm (Bribie Island - Sandstone Point | A4-portrait  | standard_street \(1:12500\) | 0        | 0 / 0          | >= 1.50 mm | 100% SHA-256 Match) Tj ET
+BT /F2 11.0 Tf 0.12 0.23 0.54 rg 1 0 0 1 46.0 420.0 Tm (4. SMOKE TEST & DETERMINISM JSON OUTPUTS) Tj ET
+BT /F3 7.5 Tf 0.15 0.15 0.15 rg 1 0 0 1 46.0 404.0 Tm (smoke_test.py: {"smoke_test": "PASSED", "final_job_status": "proof_ready", "cache_hit_verified": true,) Tj ET
+BT /F3 7.5 Tf 0.15 0.15 0.15 rg 1 0 0 1 46.0 393.0 Tm (  "job_id": "maroochydore-smoke-2026-10-smoke1-c19322", "canvas_hash": "73726d3c2c7f7c93af4d14a88a613898..."}) Tj ET
+BT /F3 7.5 Tf 0.15 0.15 0.15 rg 1 0 0 1 46.0 379.0 Tm (verify_determinism.py: {"deterministic": true, "content_hash": "46ec32956f277efb83104b4c1b5492c93b2b099019186cdc71584a1a59ece6a8",) Tj ET
+BT /F3 7.5 Tf 0.15 0.15 0.15 rg 1 0 0 1 46.0 368.0 Tm (  "pdf_sha256": "dbc189d129cd34366ca5addeb474a339dbf014e916ddd8a678b2892e219b9b17"}) Tj ET
+BT /F3 7.5 Tf 0.15 0.15 0.15 rg 1 0 0 1 46.0 354.0 Tm (backup_restore_drill.py: {"restored_ok": true, "manifest_sha256_match": true, "pdf_sha256_match": true}) Tj ET
+BT /F1 8.0 Tf 0.35 0.35 0.35 rg 1 0 0 1 46.0 52.0 Tm (Page 1 of 3  |  Maps4U Street Map System v1.0.0-mvp  |  Full Pytest & Coverage Log on Pages 2-3) Tj ET
+Q
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 8822 >>
+stream
+q
+0.06 0.09 0.16 rg 36 778 523 36 re f
+0.91 0.95 0.99 RG 0.6 w 36 42 523 772 re S
+BT /F2 12.5 Tf 1 1 1 rg 1 0 0 1 46.0 796.0 Tm (MAPS4U v1.0.0-mvp - PYTEST EXECUTION & COVERAGE RECORD \(PAGE 2 OF 3\)) Tj ET
+BT /F1 8.5 Tf 0.82 0.88 0.98 rg 1 0 0 1 46.0 784.0 Tm (61 Automated Tests \(Unit, Property, Provider Contract, API, Golden Layout, PDF Structure, E2E UAT\) + Coverage) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 758.0 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/render/style_engine.py:184: DeprecationWarning: The 'shape) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 747.2 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:131: DeprecationWarning: The 'shapely.ops) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 736.4 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:173: DeprecationWarning: The 'shapely.ops) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 725.6 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:194: DeprecationWarning: The 'shapely.ops) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 714.8 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:218: DeprecationWarning: The 'shapely.ops) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 704.0 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:243: DeprecationWarning: The 'shapely.ops) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 693.2 Tm (tests/integration/test_stage6_packaging_and_handover.py::test_s6_t3_full_uat_operator_journey) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 682.4 Tm (tests/integration/test_stage6_packaging_and_handover.py::test_s6_t3_full_uat_operator_journey) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 671.6 Tm (tests/integration/test_stage6_packaging_and_handover.py::test_s6_t3_full_uat_operator_journey) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 660.8 Tm (Name                                  Stmts   Miss  Cover   Missing) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 650.0 Tm (-------------------------------------------------------------------) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 639.2 Tm (src/maps4u/__init__.py                    1      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 628.4 Tm (src/maps4u/api/__init__.py                0      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 617.6 Tm (src/maps4u/api/deps.py                    6      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 606.8 Tm (src/maps4u/api/main.py                   45      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 596.0 Tm (src/maps4u/api/routes_jobs.py           124     15    88%   76, 83, 177-188, 199, 219, 226, 249, 334-344, 356) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 585.2 Tm (src/maps4u/api/routes_projects.py        59      6    90%   55-57, 79, 129, 171) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 574.4 Tm (src/maps4u/api/routes_styles.py           8      2    75%   14-15) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 563.6 Tm (src/maps4u/api/routes_system.py          20      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 552.8 Tm (src/maps4u/api/routes_viability.py       23      2    91%   22-23) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 542.0 Tm (src/maps4u/bundle/__init__.py             0      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 531.2 Tm (src/maps4u/bundle/archive.py             68      2    97%   95, 106) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 520.4 Tm (src/maps4u/core/__init__.py               0      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 509.6 Tm (src/maps4u/core/config.py                51      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 498.8 Tm (src/maps4u/core/db.py                    42      1    98%   52) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 488.0 Tm (src/maps4u/core/errors.py                21      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 477.2 Tm (src/maps4u/core/ids.py                   27      3    89%   35, 43-44) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 466.4 Tm (src/maps4u/core/logging.py               30      6    80%   17-27) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 455.6 Tm (src/maps4u/core/models.py                40      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 444.8 Tm (src/maps4u/core/schemas.py               79      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 434.0 Tm (src/maps4u/core/state.py                 38      2    95%   62, 76) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 423.2 Tm (src/maps4u/geo/__init__.py                0      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 412.4 Tm (src/maps4u/geo/acquire.py                30      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 401.6 Tm (src/maps4u/geo/cache.py                  47      4    91%   25, 42-43, 85) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 390.8 Tm (src/maps4u/geo/corrections.py            98     12    88%   42, 45, 54, 88, 130, 134, 148-154) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 380.0 Tm (src/maps4u/geo/crs.py                    61     11    82%   31-32, 40, 53, 57-58, 61, 73, 82, 88, 95) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 369.2 Tm (src/maps4u/geo/features.py               49     11    78%   94-104) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 358.4 Tm (src/maps4u/geo/fetch.py                  87      5    94%   47, 57, 125, 231-233) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 347.6 Tm (src/maps4u/geo/overpass.py               44      5    89%   46-49, 74) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 336.8 Tm (src/maps4u/labels/__init__.py             0      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 326.0 Tm (src/maps4u/labels/engine.py             210     24    89%   70, 72, 172, 175, 193, 196, 213, 217, 220, 238, 241,) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 315.2 Tm (src/maps4u/layout/__init__.py             0      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 304.4 Tm (src/maps4u/layout/furniture.py          110      1    99%   123) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 293.6 Tm (src/maps4u/layout/templates.py          130     11    92%   48, 92, 116, 140, 152, 160, 164, 171, 199, 242, 248) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 282.8 Tm (src/maps4u/qa/__init__.py                 0      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 272.0 Tm (src/maps4u/qa/preflight.py               87      7    92%   65, 74, 83, 92, 101, 113, 172) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 261.2 Tm (src/maps4u/render/__init__.py             0      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 250.4 Tm (src/maps4u/render/assess.py              85      3    96%   112, 125, 147) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 239.6 Tm (src/maps4u/render/cairo_canvas.py       210     14    93%   23, 25, 35, 37, 125, 138-139, 163, 189, 193, 219, 31) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 228.8 Tm (src/maps4u/render/canvas.py              59      7    88%   84-88, 91-92) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 218.0 Tm (src/maps4u/render/proof_renderer.py      64      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 207.2 Tm (src/maps4u/render/style_engine.py       201     22    89%   79, 81, 85-86, 89, 128, 150, 161-162, 165-167, 222, ) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 196.4 Tm (src/maps4u/worker/__init__.py             0      0   100%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 185.6 Tm (src/maps4u/worker/celery_app.py           8      8     0%   3-25) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 174.8 Tm (src/maps4u/worker/executor.py           111      3    97%   35, 167, 169) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 164.0 Tm (src/maps4u/worker/pipeline.py            30      4    87%   53-67) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 153.2 Tm (src/maps4u/worker/tasks.py                9      9     0%   3-16) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 142.4 Tm (-------------------------------------------------------------------) Tj ET
+BT /F3 7.2 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 131.6 Tm (TOTAL                                  2412    200    92%) Tj ET
+BT /F3 7.2 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 120.8 Tm (====================== 61 passed, 321 warnings in 22.65s =======================) Tj ET
+BT /F1 8.0 Tf 0.35 0.35 0.35 rg 1 0 0 1 46.0 52.0 Tm (Page 2 of 3  |  Maps4U Street Map System v1.0.0-mvp  |  61/61 Tests Passed, 92% Coverage) Tj ET
+Q
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 533 >>
+stream
+q
+0.06 0.09 0.16 rg 36 778 523 36 re f
+0.91 0.95 0.99 RG 0.6 w 36 42 523 772 re S
+BT /F2 12.5 Tf 1 1 1 rg 1 0 0 1 46.0 796.0 Tm (MAPS4U v1.0.0-mvp - PYTEST EXECUTION & COVERAGE RECORD \(PAGE 3 OF 3\)) Tj ET
+BT /F1 8.5 Tf 0.82 0.88 0.98 rg 1 0 0 1 46.0 784.0 Tm (61 Automated Tests \(Unit, Property, Provider Contract, API, Golden Layout, PDF Structure, E2E UAT\) + Coverage) Tj ET
+BT /F1 8.0 Tf 0.35 0.35 0.35 rg 1 0 0 1 46.0 52.0 Tm (Page 3 of 3  |  Maps4U Street Map System v1.0.0-mvp  |  61/61 Tests Passed, 92% Coverage) Tj ET
+Q
+endstream
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000134 00000 n 
+0000000231 00000 n 
+0000000333 00000 n 
+0000000428 00000 n 
+0000000580 00000 n 
+0000006486 00000 n 
+0000006638 00000 n 
+0000015511 00000 n 
+0000015665 00000 n 
+trailer
+<< /Size 12 /Root 1 0 R >>
+startxref
+16249
+%%EOF
