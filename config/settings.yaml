@@ -1,0 +1,9 @@
+default_style: "mcy/v1"
+min_font_mm: 1.5
+max_geofence_area_km2: 600.0
+max_ring_vertices: 200
+max_multipolygon_parts: 3
+overpass:
+  timeout_seconds: 120
+  gap_seconds: 5.0
+  retry_backoff_seconds: [10, 30, 90]

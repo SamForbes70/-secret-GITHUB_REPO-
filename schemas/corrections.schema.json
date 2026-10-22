@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Maps4U Corrections File",
+  "type": "object",
+  "required": ["corrections"],
+  "additionalProperties": false,
+  "properties": {
+    "author": {"type": "string"},
+    "date": {"type": "string"},
+    "version": {"type": "string"},
+    "corrections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["feature", "action"],
+        "additionalProperties": false,
+        "properties": {
+          "feature": {"type": "string", "enum": ["road", "water", "water_line", "park", "boundary", "place", "landmark"]},
+          "action": {"type": "string", "enum": ["rename", "add", "remove", "reclass"]},
+          "osm_id": {"type": "integer"},
+          "name": {"type": "string"},
+          "new_class": {"type": "string"},
+          "highway": {"type": "string"},
+          "type": {"type": "string"},
+          "lat": {"type": "number", "minimum": -90, "maximum": 90},
+          "lon": {"type": "number", "minimum": -180, "maximum": 180},
+          "coordinates": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {"type": "number"}
+            }
+          },
+          "expected_name": {"type": "string"}
+        }
+      }
+    }
+  }
+}

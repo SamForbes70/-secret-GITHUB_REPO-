@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Maps4U Style Specification",
+  "type": "object",
+  "required": ["style_version", "label_rules", "layers"],
+  "properties": {
+    "style_version": {"type": "string"},
+    "meta": {"type": "object"},
+    "label_rules": {"type": "object"},
+    "layers": {"type": "object"},
+    "scale_bands": {"type": "array"}
+  }
+}

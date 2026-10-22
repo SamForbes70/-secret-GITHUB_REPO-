@@ -1,0 +1,15 @@
+author: "David"
+date: "2026-10-21"
+version: "1.0"
+corrections:
+  - feature: road
+    osm_id: 9002
+    action: rename
+    name: "The Esplanade"
+    expected_name: "First Avenue"
+  - feature: place
+    lat: -26.6525
+    lon: 153.0965
+    action: add
+    name: "Sunshine Beach Headland"
+    type: landmark

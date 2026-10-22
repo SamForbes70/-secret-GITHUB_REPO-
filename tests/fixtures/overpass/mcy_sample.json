@@ -1,0 +1,232 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.1",
+  "osm3s": {
+    "timestamp_osm_base": "2026-07-01T00:00:00Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+    {
+      "type": "node",
+      "id": 1001,
+      "lat": -26.655,
+      "lon": 153.09
+    },
+    {
+      "type": "node",
+      "id": 1002,
+      "lat": -26.654,
+      "lon": 153.095
+    },
+    {
+      "type": "node",
+      "id": 1003,
+      "lat": -26.653,
+      "lon": 153.1
+    },
+    {
+      "type": "node",
+      "id": 1004,
+      "lat": -26.656,
+      "lon": 153.091
+    },
+    {
+      "type": "node",
+      "id": 1005,
+      "lat": -26.656,
+      "lon": 153.096
+    },
+    {
+      "type": "node",
+      "id": 2001,
+      "lat": -26.652,
+      "lon": 153.092
+    },
+    {
+      "type": "node",
+      "id": 2002,
+      "lat": -26.652,
+      "lon": 153.097
+    },
+    {
+      "type": "node",
+      "id": 2003,
+      "lat": -26.649,
+      "lon": 153.097
+    },
+    {
+      "type": "node",
+      "id": 2004,
+      "lat": -26.649,
+      "lon": 153.092
+    },
+    {
+      "type": "node",
+      "id": 3001,
+      "lat": -26.658,
+      "lon": 153.088
+    },
+    {
+      "type": "node",
+      "id": 3002,
+      "lat": -26.658,
+      "lon": 153.093
+    },
+    {
+      "type": "node",
+      "id": 3003,
+      "lat": -26.6565,
+      "lon": 153.093
+    },
+    {
+      "type": "node",
+      "id": 3004,
+      "lat": -26.6565,
+      "lon": 153.088
+    },
+    {
+      "type": "node",
+      "id": 4001,
+      "lat": -26.66,
+      "lon": 153.085
+    },
+    {
+      "type": "node",
+      "id": 4002,
+      "lat": -26.66,
+      "lon": 153.105
+    },
+    {
+      "type": "node",
+      "id": 4003,
+      "lat": -26.645,
+      "lon": 153.105
+    },
+    {
+      "type": "node",
+      "id": 4004,
+      "lat": -26.645,
+      "lon": 153.085
+    },
+    {
+      "type": "node",
+      "id": 5001,
+      "lat": -26.6545,
+      "lon": 153.094,
+      "tags": {
+        "name": "Maroochydore",
+        "place": "suburb"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5002,
+      "lat": -26.6515,
+      "lon": 153.0985,
+      "tags": {
+        "name": "Cotton Tree Pier",
+        "man_made": "tower"
+      }
+    },
+    {
+      "type": "way",
+      "id": 9001,
+      "nodes": [
+        1001,
+        1002,
+        1003
+      ],
+      "tags": {
+        "highway": "primary",
+        "name": "Aerodrome Road",
+        "ref": "SR70",
+        "oneway": "no",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 9002,
+      "nodes": [
+        1004,
+        1005
+      ],
+      "tags": {
+        "highway": "residential",
+        "name": "First Avenue",
+        "oneway": "yes",
+        "surface": "paved"
+      }
+    },
+    {
+      "type": "way",
+      "id": 9003,
+      "nodes": [
+        2001,
+        2002,
+        2003,
+        2004,
+        2001
+      ],
+      "tags": {
+        "natural": "water",
+        "name": "Maroochy River",
+        "water": "river"
+      }
+    },
+    {
+      "type": "way",
+      "id": 9004,
+      "nodes": [
+        1001,
+        1003
+      ],
+      "tags": {
+        "waterway": "canal",
+        "name": "Maroochy Canal"
+      }
+    },
+    {
+      "type": "way",
+      "id": 9005,
+      "nodes": [
+        3001,
+        3002,
+        3003,
+        3004,
+        3001
+      ],
+      "tags": {
+        "leisure": "park",
+        "name": "Cotton Tree Park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 9006,
+      "nodes": [
+        4001,
+        4002,
+        4003,
+        4004,
+        4001
+      ],
+      "tags": {
+        "boundary": "administrative",
+        "admin_level": "10",
+        "name": "Maroochydore"
+      }
+    },
+    {
+      "type": "way",
+      "id": 9007,
+      "nodes": [
+        4002,
+        4003
+      ],
+      "tags": {
+        "natural": "coastline"
+      }
+    }
+  ]
+}
