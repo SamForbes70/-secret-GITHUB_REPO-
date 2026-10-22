@@ -348,3 +348,7 @@ class CairoCanvas:
             )
 
         img.save(path, format="PNG")
+
+
+def render_png_thumbnail(canvas: CairoCanvas, path: Path, dpi: int = 120) -> None:
+    canvas.render_thumbnail(path, dpi=dpi)

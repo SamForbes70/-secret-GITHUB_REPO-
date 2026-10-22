@@ -239,3 +239,6 @@ def assess(
         blockers=blockers,
         choices=choices,
     )
+
+
+assess_viability = assess

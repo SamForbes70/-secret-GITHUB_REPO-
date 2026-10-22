@@ -65,6 +65,9 @@ def _load_and_validate_corrections(corrections_path: Path) -> tuple[dict[str, An
     return data, corr_id
 
 
+load_and_validate_corrections = _load_and_validate_corrections
+
+
 def apply_corrections(
     features: FeatureSet, corrections_path: Path
 ) -> tuple[FeatureSet, list[CorrectionWarning]]:
