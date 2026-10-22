@@ -2,12 +2,86 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Maps4U Style Specification",
   "type": "object",
-  "required": ["style_version", "label_rules", "layers"],
+  "required": ["style_version", "meta", "fonts", "label_rules", "layers", "scale_bands"],
   "properties": {
-    "style_version": {"type": "string"},
-    "meta": {"type": "object"},
-    "label_rules": {"type": "object"},
-    "layers": {"type": "object"},
-    "scale_bands": {"type": "array"}
+    "style_version": { "type": "string", "minLength": 1 },
+    "meta": {
+      "type": "object",
+      "required": ["style_ref", "derived_from", "approved"],
+      "properties": {
+        "style_ref": { "type": "string", "minLength": 1 },
+        "derived_from": { "type": "string", "minLength": 1 },
+        "approved": { "type": "boolean" }
+      }
+    },
+    "fonts": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["family", "weight", "size_mm"],
+        "properties": {
+          "family": { "type": "string" },
+          "weight": { "type": "string", "enum": ["regular", "bold"] },
+          "size_mm": { "type": "number", "exclusiveMinimum": 0 },
+          "spacing_mm": { "type": "number", "minimum": 0 },
+          "halo": {
+            "type": "object",
+            "required": ["color", "width_mm"],
+            "properties": {
+              "color": { "type": "string" },
+              "width_mm": { "type": "number", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "label_rules": {
+      "type": "object",
+      "required": ["priority_order", "candidate_order", "repeat_every_mm", "max_repeats", "min_font_mm", "packing_factor"],
+      "properties": {
+        "priority_order": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "candidate_order": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "repeat_every_mm": { "type": "number", "exclusiveMinimum": 0 },
+        "max_repeats": { "type": "integer", "minimum": 1 },
+        "min_font_mm": { "type": "number", "minimum": 1.0 },
+        "packing_factor": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "layers": {
+      "type": "object",
+      "required": ["water", "water_lines", "parks", "roads", "boundaries", "coastline"],
+      "properties": {
+        "background": { "type": "object" },
+        "water": { "type": "object", "required": ["fill", "z"] },
+        "water_lines": { "type": "object", "required": ["stroke", "z"] },
+        "parks": { "type": "object", "required": ["fill", "z"] },
+        "roads": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "required": ["casing", "fill", "z"]
+          }
+        },
+        "boundaries": { "type": "object", "required": ["stroke", "z"] },
+        "coastline": { "type": "object", "required": ["stroke", "z"] }
+      }
+    },
+    "scale_bands": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "denominator_max", "simplify_tolerance_m", "road_classes", "include_layers"],
+        "properties": {
+          "name": { "type": "string" },
+          "denominator_max": { "type": "number", "exclusiveMinimum": 0 },
+          "simplify_tolerance_m": { "type": "number", "minimum": 0 },
+          "road_classes": { "type": "array", "items": { "type": "string" } },
+          "include_layers": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
   }
 }

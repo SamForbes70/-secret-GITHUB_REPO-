@@ -24,6 +24,9 @@ def utm_epsg_for_lonlat(lon: float, lat: float) -> int:
     return (32600 if lat >= 0 else 32700) + zone
 
 
+utm_epsg_for_lon_lat = utm_epsg_for_lonlat
+
+
 def bbox_from_geometry(geom: Polygon | MultiPolygon) -> BBox:
     minx, miny, maxx, maxy = geom.bounds
     return BBox(min_lon=float(minx), min_lat=float(miny), max_lon=float(maxx), max_lat=float(maxy))

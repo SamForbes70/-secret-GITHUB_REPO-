@@ -44,6 +44,9 @@ def read_geopackage_snapshot(gpkg_path: Path) -> FeatureSet:
     return FeatureSet(**layers)
 
 
+load_features_from_gpkg = read_geopackage_snapshot
+
+
 def record_snapshot_in_db(db_path: Path, extract: OsmExtract) -> None:
     run_migrations(db_path)
     with db_session(db_path) as conn:

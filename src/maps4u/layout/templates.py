@@ -84,6 +84,10 @@ class PaperTemplate:
     grid: GridSpec
 
     @property
+    def page_mm(self) -> tuple[float, float]:
+        return (self.page_w_mm, self.page_h_mm)
+
+    @property
     def page_area_mm2(self) -> float:
         return self.page_w_mm * self.page_h_mm
 
