@@ -1,6 +1,13 @@
 # Maps4U Street Map System (`maps4u-maps` v1.0.0-mvp)
 
-A deterministic, config-driven cartographic production pipeline that converts an operator-drawn geofence (`EPSG:4326` GeoJSON `Polygon` / `MultiPolygon`) and a print paper specification (`A3`, `A4`, `A5` in `landscape` or `portrait`) into a print-ready vector PDF street map (`proof.pdf`), raster preview (`thumb.png`), automated QA preflight report (`qa-report.json` + `qa-report.md`), and cryptographic provenance manifest (`manifest.json`), styled after the **Maroochydore (`MCY`)** reference map.
+![Release](https://img.shields.io/badge/release-v1.0.0--mvp-blue)
+![Python](https://img.shields.io/badge/python-3.12%2B%20%7C%203.13-3776AB)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111%2B-009688)
+![Tests](https://img.shields.io/badge/tests-61%2F61%20passing-brightgreen)
+![Determinism](https://img.shields.io/badge/PDF%20Determinism-SHA--256%20Verified-success)
+![Map Data](https://img.shields.io/badge/Data-%C2%A9%20OpenStreetMap%20ODbL-7EBC6F)
+
+A deterministic, config-driven cartographic production pipeline that converts an operator-drawn geofence (`EPSG:4326` GeoJSON `Polygon` / `MultiPolygon`) and a print paper specification (`A3`, `A4`, `A5` in `landscape` or `portrait`) into a print-ready vector PDF street map (`proof.pdf`), raster preview (`thumb.png`), automated QA preflight report (`qa-report.json` + `qa-report.md`), and cryptographic provenance manifest (`manifest.json`), styled after the **Maroochydore (`MCY`)** reference street map.
 
 ---
 
@@ -8,14 +15,15 @@ A deterministic, config-driven cartographic production pipeline that converts an
 
 1. [System Highlights & Core Guarantees](#1-system-highlights--core-guarantees)
 2. [End-to-End Pipeline Architecture](#2-end-to-end-pipeline-architecture)
-3. [Quickstart (Docker & Local Python)](#3-quickstart-docker--local-python)
-4. [End-to-End API Walkthrough](#4-end-to-end-api-walkthrough)
+3. [Complete Beginner's Guide: How to Download & Run Maps4U Step-by-Step](#3-complete-beginners-guide-how-to-download--run-maps4u-step-by-step)
+4. [Developer Quickstart & End-to-End API Walkthrough](#4-developer-quickstart--end-to-end-api-walkthrough)
 5. [Governed 5-Artifact Output Bundle](#5-governed-5-artifact-output-bundle)
 6. [Paper Templates & Viability Rules](#6-paper-templates--viability-rules)
 7. [Repository Structure](#7-repository-structure)
 8. [Configuration & Environment Variables](#8-configuration--environment-variables)
 9. [Testing, QA & Reproducibility Verification](#9-testing-qa--reproducibility-verification)
-10. [Documentation Index](#10-documentation-index)
+10. [Documentation & Governance Index](#10-documentation--governance-index)
+11. [Acknowledgements & Special Thanks to Winston the Cat](#11-acknowledgements--special-thanks-to-winston-the-cat)
 
 ---
 
@@ -71,33 +79,131 @@ A deterministic, config-driven cartographic production pipeline that converts an
 
 ---
 
-## 3. Quickstart (Docker & Local Python)
+## 3. Complete Beginner's Guide: How to Download & Run Maps4U Step-by-Step
 
-### Option A: Docker Compose (Recommended for Pilot Deployment)
+New to GitHub, Docker, or Python? **Start here!** This section walks you through every single step from downloading the project onto your computer to generating and opening your first print-ready PDF street map. *(Also available as a standalone guide in [`docs/getting-started-beginners.md`](docs/getting-started-beginners.md).)*
 
-Starts the FastAPI service (`:8000`), Celery worker (`concurrency=1`), and Redis 7 broker backed by a persistent `/var/maps4u` volume:
+### Step 1: Download the Project to Your Computer
+
+You can get the files in one of two ways:
+
+- **Way 1 — Download as a ZIP file (No Git required):**
+  1. Scroll to the top of this GitHub page and click the green **`<> Code`** button.
+  2. Click **Download ZIP**.
+  3. Unzip/extract the downloaded folder (`maps4u-street-map-system-main`) to somewhere easy to find, such as your `Desktop` or `Documents` folder.
+- **Way 2 — Using Git (if you have Git installed):**
+  Open your terminal (macOS/Linux) or PowerShell/Command Prompt (Windows) and run:
+  ```bash
+  git clone https://github.com/SamForbes70/maps4u-street-map-system.git
+  cd maps4u-street-map-system
+  ```
+
+---
+
+### Step 2: Open a Terminal Inside the Project Folder
+
+If you downloaded the ZIP file, open your terminal inside that unzipped folder:
+- **Windows:** Open the unzipped folder in File Explorer, click in the address bar at the top, type `powershell`, and press **Enter**.
+- **macOS:** Right-click (or two-finger click) the unzipped folder in Finder and select **New Terminal at Folder**.
+- **Linux:** Right-click inside the folder and select **Open in Terminal**.
+
+To confirm you are in the right place, type `ls` (or `dir` on Windows) and press **Enter** — you should see files like `README.md`, `Dockerfile`, `docker-compose.yml`, and `pyproject.toml`.
+
+---
+
+### Step 3: Start the Program (Choose Option A *or* Option B)
+
+You only need **one** of the two methods below. **Option A (Docker)** is the easiest because it installs everything automatically inside an isolated container.
+
+#### Option A: Run with Docker Desktop (Easiest — Windows, macOS, Linux)
+
+1. **Prerequisite:** Install and open [Docker Desktop](https://www.docker.com/products/docker-desktop/) so the Docker whale icon is running.
+2. **Start Maps4U:** In your terminal, copy and paste this command and press **Enter**:
+   ```bash
+   docker compose up --build
+   ```
+3. **What happens next:**
+   - The first time you run this, Docker will download Python and the mapping libraries (takes about 1–3 minutes).
+   - Once ready, you will see a line saying:
+     `Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)`
+4. **Open the App:** Open your web browser (Chrome, Edge, Firefox, Safari) and go to:
+   **`http://localhost:8000`**
+
+#### Option B: Run Directly with Python (No Docker required)
+
+1. **Prerequisite:** Have **Python 3.12 or 3.13** installed ([python.org/downloads](https://www.python.org/downloads/)).
+2. **Create a virtual environment & install the program:**
+   - **On macOS / Linux:**
+     ```bash
+     python3 -m venv .venv
+     source .venv/bin/activate
+     pip install --upgrade pip
+     pip install -e ".[dev]"
+     cp .env.example .env
+     ```
+   - **On Windows (PowerShell):**
+     ```powershell
+     python -m venv .venv
+     .\.venv\Scripts\Activate.ps1
+     pip install --upgrade pip
+     pip install -e ".[dev]"
+     Copy-Item .env.example .env
+     ```
+3. **Start the Web Server:**
+   ```bash
+   MAPS4U_QUEUE=inline uvicorn maps4u.api.main:app --host 127.0.0.1 --port 8080
+   ```
+   *(On Windows PowerShell, run `$env:MAPS4U_QUEUE="inline"; uvicorn maps4u.api.main:app --host 127.0.0.1 --port 8080`)*
+4. **Open the App:** Open your web browser and go to:
+   **`http://127.0.0.1:8080`**
+
+---
+
+### Step 4: Create Your First Street Map in 60 Seconds (Using the Web Console)
+
+Once you have opened `http://localhost:8000` (Docker) or `http://127.0.0.1:8080` (Python) in your browser:
+
+1. **Load or Draw an Area (Geofence):**
+   - Look at the interactive map on the screen. You can click the **Maroochydore Preset** button (or use the polygon drawing tool on the map to click 4 corners around your chosen neighborhood and click the first point again to close the shape).
+2. **Pick Your Paper Size & Orientation:**
+   - Choose **`A4`** (or `A3` / `A5`) and **`landscape`** (or `portrait`).
+3. **Click "Check Viability":**
+   - Maps4U immediately calculates the exact print scale (for example, `1:12,500`) and checks whether every street name will print at **`1.5 mm` or larger**.
+   - If the area you drew is too large for the paper size (making street names too tiny to read), the system will show a friendly red **Blocker** message and suggest switching to **`A3`** or drawing a smaller box.
+4. **Create & Run the Map Job:**
+   - Enter a project name (e.g., `My First Map`), click **Save Geofence & Create Job**, and click **Run Render Pipeline**.
+5. **View & Download Your Map Bundle:**
+   - Within seconds, your job reaches **`proof_ready`**!
+   - Click **`proof.pdf`** to open and download your crisp, print-ready vector PDF street map (complete with road casings, parks, waterways, alphanumeric grid `A1..H6`, street index, scale bar, north arrow, legend, and OpenStreetMap attribution).
+   - Click **`thumb.png`** to view the quick preview image, or **`qa-report.md`** to read the automated 7-gate quality report.
+6. **Approve or Request Corrections:**
+   - Click **Approve** to cryptographically lock your final PDF (`finalized`), or submit a YAML correction (for example, renaming a street or adding a local landmark) to spin up a new revision.
+
+---
+
+### Step 5: How to Run the Offline Self-Test (Optional)
+
+Want to verify that everything on your computer works without even using the internet? Run the built-in offline test suite:
 
 ```bash
-docker compose up -d --build
-curl -fsS http://127.0.0.1:8000/healthz
-curl -fsS http://127.0.0.1:8000/readyz
+pytest -q
 ```
 
-Open `http://127.0.0.1:8000/` in a browser to launch the interactive **Maps4U Operator Console**.
+You should see `61 passed` — confirming that map acquisition, styling, label placement, PDF generation, QA checks, and backups all work identically on your machine.
 
-### Option B: Local Python Virtual Environment (Development & Inline Mode)
+---
 
-```bash
-# Copy default environment configuration
-cp .env.example .env
+### Step 6: How to Stop the Program
 
-# Run the FastAPI server with inline synchronous execution (no Redis required)
-MAPS4U_QUEUE=inline uvicorn maps4u.api.main:app --host 127.0.0.1 --port 8080
-```
+- **If running in the terminal:** Press **`Ctrl + C`** in the terminal window.
+- **If running in Docker in the background:** Run:
+  ```bash
+  docker compose down
+  ```
 
---- 
+---
 
-## 4. End-to-End API Walkthrough
+## 4. Developer Quickstart & End-to-End API Walkthrough
 
 ```bash
 # 1. Create a map project
@@ -193,6 +299,9 @@ Defined in `config/paper_templates.yaml` with **3.0 mm bleed** on all edges:
 
 ```text
 maps4u-street-map-system/
+├── .github/
+│   ├── ISSUE_TEMPLATE/             # Bug report & feature request templates
+│   └── PULL_REQUEST_TEMPLATE.md    # Pull request review checklist
 ├── config/
 │   ├── logging.yaml                # Structured logging configuration
 │   ├── paper_templates.yaml        # 6 A3/A4/A5 landscape & portrait templates
@@ -205,6 +314,7 @@ maps4u-street-map-system/
 │   ├── decisions.md                # Owner Decision Register (OD-1..OD-9)
 │   ├── deployment.md               # Docker Compose deployment & backup/restore guide
 │   ├── development-plan.md         # Master engineering specification (MAPS4U-PLAN-001)
+│   ├── getting-started-beginners.md# Step-by-step zero-assumption beginner guide
 │   ├── prd-v2.md                   # Machine PRD v2 specification
 │   ├── qa-acceptance.md            # 3-Pilot QA & reproducibility acceptance report
 │   ├── runbook.md                  # Step-by-step operator runbook
@@ -239,10 +349,15 @@ maps4u-street-map-system/
 │   ├── fixtures/                   # Recorded Overpass JSON, geofences & YAML fixtures
 │   ├── integration/                # Stage 1–6 end-to-end & multi-pilot integration tests
 │   └── unit/                       # Unit & Hypothesis property-based tests
+├── CHANGELOG.md                    # Release history across Gates G1–G6
+├── CODE_OF_CONDUCT.md              # Community Code of Conduct
+├── CONTRIBUTING.md                 # Developer & TDD contribution guidelines
 ├── Dockerfile                      # Multi-stage Python 3.13 slim production image
 ├── docker-compose.yml              # API + Celery Worker + Redis 7 orchestration
+├── LICENSE                         # License & OpenStreetMap ODbL attribution terms
 ├── Makefile                        # Developer lint, test, coverage, and run targets
-└── pyproject.toml                  # Package metadata, dependencies, ruff, mypy, pytest
+├── pyproject.toml                  # Package metadata, dependencies, ruff, mypy, pytest
+└── SECURITY.md                     # Security policy & vulnerability reporting
 ```
 
 ---
@@ -287,8 +402,9 @@ python -m scripts.backup_restore_drill
 
 ---
 
-## 10. Documentation Index
+## 10. Documentation & Governance Index
 
+- **[Beginner's Step-by-Step Guide (`docs/getting-started-beginners.md`)](docs/getting-started-beginners.md)** — Zero-assumption walkthrough for downloading, starting, and using Maps4U.
 - **[System Architecture (`docs/architecture.md`)](docs/architecture.md)** — Component topology, 11-stage state machine, SQLite WAL schema, and CRS design.
 - **[HTTP API Reference (`docs/api.md`)](docs/api.md)** — Complete endpoint specifications, request/response payloads, and error codes.
 - **[Operator Runbook (`docs/runbook.md`)](docs/runbook.md)** — Step-by-step map production, QA review, approval locking, and troubleshooting.
@@ -300,3 +416,12 @@ python -m scripts.backup_restore_drill
 - **[Threat Model (`docs/threat-model.md`)](docs/threat-model.md)** — Input validation bounds, Overpass fair-use protection, and runtime security controls.
 - **[Owner Decision Register (`docs/decisions.md`)](docs/decisions.md)** — Decisions `OD-1` through `OD-9` and stage gate sign-offs.
 - **[Architecture Decision Records (`docs/adr/`)](docs/adr/)** — `ADR-0001` through `ADR-0009`.
+- **[Changelog (`CHANGELOG.md`)](CHANGELOG.md)** | **[Contributing (`CONTRIBUTING.md`)](CONTRIBUTING.md)** | **[Security (`SECURITY.md`)](SECURITY.md)** | **[Code of Conduct (`CODE_OF_CONDUCT.md`)](CODE_OF_CONDUCT.md)**
+
+---
+
+## 11. Acknowledgements & Special Thanks to Winston the Cat
+
+A very special, heartfelt thank-you goes to **Winston the Cat** 🐾🐈 — Chief Feline Supervisor of Cartographic Quality — for his extraordinary patience, quiet supervision, and unwavering composure through every stage gate, late-night test run, label-collision algorithm, and PDF rendering verification that brought the **Maps4U Street Map System** to life.
+
+> *"Every street corner mapped, every label aligned, and not a single keyboard walked across without good reason — thank you for your patience, Winston."* 🐱✨

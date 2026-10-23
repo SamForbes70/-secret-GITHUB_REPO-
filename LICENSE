@@ -1,2 +1,19 @@
-Maps4U Proprietary License
-Copyright (c) 2026 Maps4U. All rights reserved.
+Maps4U Proprietary Software License
+Copyright (c) 2026 Maps4U & Contributors. All rights reserved.
+
+1. Ownership & Grant of Use
+This software and its associated documentation, cartographic style specifications,
+and pipeline orchestration code ("Software") are the proprietary property of Maps4U.
+Authorized operators and evaluators may clone, build, and execute the Software
+in accordance with written authorization from the copyright holder.
+
+2. OpenStreetMap Data Attribution (ODbL 1.0)
+Maps produced by this Software incorporate geospatial data from OpenStreetMap.
+Map data is (c) OpenStreetMap contributors and is licensed under the Open Data
+Commons Open Database License (ODbL 1.0): https://www.openstreetmap.org/copyright
+Every generated street map sheet automatically embeds mandatory ODbL attribution.
+
+3. Disclaimer of Warranty
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.

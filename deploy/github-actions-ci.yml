@@ -1,0 +1,52 @@
+name: Maps4U CI & Determinism Gate
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  verify:
+    name: Lint, Typecheck, 61 Offline Tests & Backup Drill
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system geospatial libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            fonts-dejavu-core \
+            gdal-bin \
+            libgdal-dev \
+            libgeos-dev \
+            libproj-dev \
+            sqlite3
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install Maps4U and dev dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -e ".[dev]" reportlab PyPDF2
+
+      - name: Run Ruff linter
+        run: ruff check src tests
+
+      - name: Run MyPy type checker
+        run: mypy src/maps4u/core src/maps4u/geo
+
+      - name: Run full offline test suite (Gates G1-G6)
+        env:
+          MAPS4U_QUEUE: inline
+        run: pytest -m "not live" -v
+
+      - name: Run online SQLite WAL + artifact backup/restore drill
+        run: python -m scripts.backup_restore_drill

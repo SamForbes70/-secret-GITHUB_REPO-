@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.pdf binary
+*.png binary
+*.gpkg binary
+*.ttf binary
+*.sqlite3 binary
+*.db binary
