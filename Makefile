@@ -1,14 +1,18 @@
+PYTHON ?= $(shell command -v /opt/venv/bin/python 2>/dev/null || command -v python3 || command -v python)
+HOST ?= 127.0.0.1
+PORT ?= 8080
+
 .PHONY: lint test test-cov run
 
 lint:
-/opt/venv/bin/ruff check src tests
-/opt/venv/bin/mypy src/maps4u/core src/maps4u/geo
+	$(PYTHON) -m ruff check src tests
+	$(PYTHON) -m mypy src/maps4u/core src/maps4u/geo
 
 test:
-MAPS4U_QUEUE=inline /opt/venv/bin/pytest -m "not live"
+	MAPS4U_QUEUE=inline $(PYTHON) -m pytest -m "not live"
 
 test-cov:
-MAPS4U_QUEUE=inline /opt/venv/bin/pytest -m "not live" --cov=src/maps4u --cov-report=term-missing
+	MAPS4U_QUEUE=inline $(PYTHON) -m pytest -m "not live" --cov=src/maps4u --cov-report=term-missing
 
 run:
-/opt/venv/bin/uvicorn maps4u.api.main:app --host 127.0.0.1 --port 8080
+	$(PYTHON) -m uvicorn maps4u.api.main:create_app --factory --host $(HOST) --port $(PORT)

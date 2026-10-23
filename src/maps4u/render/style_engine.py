@@ -14,6 +14,7 @@ from shapely.geometry import LineString, MultiLineString, MultiPolygon, Polygon
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import transform as shapely_transform
 
+from maps4u.core.config import resolve_resource_path
 from maps4u.core.errors import E_STYLE_INVALID, Maps4UError
 from maps4u.core.ids import canonical_json_bytes, sha256_hex
 from maps4u.geo.crs import utm_epsg_for_lon_lat
@@ -21,9 +22,8 @@ from maps4u.geo.features import FeatureSet
 from maps4u.layout.templates import PaperTemplate, RectMM
 from maps4u.render.canvas import Fill, PathOps, Stroke
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_STYLE_PATH = REPO_ROOT / "styles" / "mcy" / "v1" / "style.yaml"
-DEFAULT_STYLE_SCHEMA_PATH = REPO_ROOT / "schemas" / "style.schema.json"
+DEFAULT_STYLE_PATH = resolve_resource_path("styles/mcy/v1/style.yaml")
+DEFAULT_STYLE_SCHEMA_PATH = resolve_resource_path("schemas/style.schema.json")
 
 
 @dataclass(frozen=True)
@@ -67,6 +67,63 @@ class DrawPlan:
     scale_denominator: float
     working_crs_epsg: int
     primitives: list[DrawPrimitive] = field(default_factory=list)
+
+
+def resolve_style_path(style_ref: str, style_dir: Path | None = None) -> Path:
+    """Resolve a style_ref (e.g. 'mcy/v1') to its style.yaml path, rejecting unknown or unsafe refs."""
+    cleaned = (style_ref or "").strip().strip("/")
+    if not cleaned or ".." in Path(cleaned).parts or cleaned.startswith("."):
+        raise Maps4UError(E_STYLE_INVALID, f"Invalid style reference: {style_ref!r}")
+    rel = Path("styles") / cleaned / "style.yaml"
+    candidates: list[Path] = []
+    if style_dir is not None:
+        candidates.append(style_dir / cleaned / "style.yaml")
+        candidates.append(style_dir / rel)
+    candidates.append(resolve_resource_path(rel, explicit_base=style_dir))
+    for cand in candidates:
+        if cand.is_file():
+            return cand
+    raise Maps4UError(
+        E_STYLE_INVALID,
+        f"Unknown style reference {style_ref!r}: style.yaml not found",
+        details={"style_ref": style_ref},
+    )
+
+
+def load_style_by_ref(
+    style_ref: str,
+    style_dir: Path | None = None,
+    schema_path: Path | None = None,
+) -> LoadedStyle:
+    """Load and validate a style by its canonical reference (e.g. 'mcy/v1')."""
+    style_path = resolve_style_path(style_ref, style_dir=style_dir)
+    loaded = load_style_yaml(style_path=style_path, schema_path=schema_path)
+    if loaded.style_ref != style_ref:
+        raise Maps4UError(
+            E_STYLE_INVALID,
+            f"Style metadata mismatch: requested {style_ref!r} but file declares {loaded.style_ref!r}",
+        )
+    return loaded
+
+
+def list_available_styles(
+    style_dir: Path | None = None,
+    schema_path: Path | None = None,
+) -> list[LoadedStyle]:
+    """Discover and load all valid style.yaml definitions in style_dir."""
+    base_dir = style_dir if (style_dir and style_dir.is_dir()) else resolve_resource_path("styles")
+    styles: dict[str, LoadedStyle] = {}
+    if base_dir.is_dir():
+        for yml in sorted(base_dir.rglob("style.yaml")):
+            try:
+                st = load_style_yaml(style_path=yml, schema_path=schema_path)
+                styles[st.style_ref] = st
+            except Maps4UError:
+                continue
+    if not styles and DEFAULT_STYLE_PATH.is_file():
+        st = load_style_yaml(style_path=DEFAULT_STYLE_PATH, schema_path=schema_path)
+        styles[st.style_ref] = st
+    return [styles[k] for k in sorted(styles.keys())]
 
 
 def load_style_yaml(

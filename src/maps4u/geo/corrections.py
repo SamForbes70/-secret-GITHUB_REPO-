@@ -13,6 +13,7 @@ import pandas as pd
 import yaml
 from shapely.geometry import LineString, Point
 
+from maps4u.core.config import resolve_resource_path
 from maps4u.core.errors import E_CORRECTIONS_INVALID, Maps4UError
 from maps4u.core.ids import sha256_hex
 from maps4u.geo.features import FeatureSet
@@ -27,7 +28,7 @@ FEATURE_TO_LAYER: dict[str, str] = {
     "landmark": "landmarks",
 }
 
-SCHEMA_PATH = Path(__file__).resolve().parents[3] / "schemas" / "corrections.schema.json"
+SCHEMA_PATH = resolve_resource_path("schemas/corrections.schema.json")
 
 
 @dataclass(frozen=True)
@@ -37,7 +38,9 @@ class CorrectionWarning:
     item: dict[str, Any]
 
 
-def _load_and_validate_corrections(corrections_path: Path) -> tuple[dict[str, Any], str]:
+def _load_and_validate_corrections(
+    corrections_path: Path, schema_path: Path = SCHEMA_PATH
+) -> tuple[dict[str, Any], str]:
     if not corrections_path.is_file():
         raise Maps4UError(E_CORRECTIONS_INVALID, f"Corrections file not found: {corrections_path}")
     raw_bytes = corrections_path.read_bytes()
@@ -53,7 +56,8 @@ def _load_and_validate_corrections(corrections_path: Path) -> tuple[dict[str, An
     if not isinstance(data, dict):
         raise Maps4UError(E_CORRECTIONS_INVALID, "Corrections root must be a YAML mapping")
 
-    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    resolved_schema = schema_path if schema_path.is_file() else resolve_resource_path("schemas/corrections.schema.json")
+    schema = json.loads(resolved_schema.read_text(encoding="utf-8"))
     try:
         jsonschema.validate(instance=data, schema=schema)
     except jsonschema.ValidationError as exc:
@@ -69,10 +73,12 @@ load_and_validate_corrections = _load_and_validate_corrections
 
 
 def apply_corrections(
-    features: FeatureSet, corrections_path: Path
+    features: FeatureSet,
+    corrections_path: Path,
+    schema_path: Path = SCHEMA_PATH,
 ) -> tuple[FeatureSet, list[CorrectionWarning]]:
     """Apply corrections to a working copy of FeatureSet without mutating the source extract."""
-    payload, corr_id = _load_and_validate_corrections(corrections_path)
+    payload, corr_id = _load_and_validate_corrections(corrections_path, schema_path=schema_path)
     working = features.copy()
     warnings: list[CorrectionWarning] = []
 
