@@ -39,6 +39,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install -e ".[dev]"
+          pip check
+
+      - name: Scan tracked files for leaked secrets or private keys
+        run: |
+          ! git grep -nE '(BEGIN (RSA|OPENSSH|EC|PGP) PRIVATE KEY|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{50,}|sk-[A-Za-z0-9]{32,})'
 
       - name: Run Ruff linter
         run: ruff check src tests scripts

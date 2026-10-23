@@ -72,6 +72,54 @@ def _load_and_validate_corrections(
 load_and_validate_corrections = _load_and_validate_corrections
 
 
+def resolve_safe_corrections_path(
+    corrections_ref: str,
+    data_dir: Path,
+    artifact_dir: Path,
+    conn: Any | None = None,
+) -> Path:
+    """Resolve a user-supplied corrections_ref safely, blocking arbitrary file access (BUG-003)."""
+    ref_str = corrections_ref.strip()
+    if not ref_str:
+        raise Maps4UError(E_CORRECTIONS_INVALID, "Empty corrections_ref", status_code=422)
+
+    if conn is not None:
+        row = conn.execute(
+            "SELECT path FROM corrections_files WHERE corrections_id = ?",
+            (ref_str,),
+        ).fetchone()
+        if row is not None:
+            ref_str = str(row["path"])
+
+    if ".." in Path(ref_str).parts:
+        raise Maps4UError(
+            E_CORRECTIONS_INVALID,
+            f"Invalid corrections_ref {corrections_ref!r}: path traversal is forbidden",
+            status_code=422,
+        )
+
+    candidate = Path(ref_str)
+    if not candidate.is_absolute():
+        candidate = (data_dir / candidate).resolve()
+    else:
+        candidate = candidate.resolve()
+
+    allowed_roots = (data_dir.resolve(), artifact_dir.resolve())
+    if not any(candidate == root or root in candidate.parents for root in allowed_roots):
+        raise Maps4UError(
+            E_CORRECTIONS_INVALID,
+            f"Forbidden corrections_ref {corrections_ref!r}: must reside within governed data_dir",
+            status_code=422,
+        )
+    if not candidate.is_file():
+        raise Maps4UError(
+            E_CORRECTIONS_INVALID,
+            f"Corrections file not found within governed storage: {corrections_ref!r}",
+            status_code=422,
+        )
+    return candidate
+
+
 def apply_corrections(
     features: FeatureSet,
     corrections_path: Path,

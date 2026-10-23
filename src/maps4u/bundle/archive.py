@@ -13,7 +13,7 @@ from maps4u.core.db import db_session
 from maps4u.core.errors import E_NOT_FOUND, Maps4UError
 from maps4u.core.ids import canonical_json_bytes, sha256_hex
 from maps4u.geo.cache import load_features_from_gpkg
-from maps4u.geo.corrections import apply_corrections
+from maps4u.geo.corrections import apply_corrections, resolve_safe_corrections_path
 from maps4u.labels.engine import place_labels
 from maps4u.layout.furniture import compose_furniture
 from maps4u.layout.templates import get_template
@@ -116,9 +116,14 @@ def reproduce(
 
     features = load_features_from_gpkg(Path(str(s_row["gpkg_path"])))
     if corrections_ref:
-        corr_path = Path(str(corrections_ref))
-        if corr_path.is_file():
-            features, _ = apply_corrections(features, corr_path)
+        with db_session(settings.db_path) as corr_conn:
+            corr_path = resolve_safe_corrections_path(
+                str(corrections_ref),
+                data_dir=settings.maps4u_data_dir,
+                artifact_dir=settings.artifact_dir,
+                conn=corr_conn,
+            )
+        features, _ = apply_corrections(features, corr_path)
 
     templates_path = resolve_resource_path("config/paper_templates.yaml", explicit_base=settings.maps4u_config_dir)
     style_schema_path = resolve_resource_path("schemas/style.schema.json", explicit_base=settings.maps4u_schema_dir)

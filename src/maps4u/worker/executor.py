@@ -18,7 +18,7 @@ from maps4u.core.ids import sha256_hex
 from maps4u.core.models import BBox
 from maps4u.geo.acquire import get_or_fetch
 from maps4u.geo.cache import load_features_from_gpkg
-from maps4u.geo.corrections import apply_corrections
+from maps4u.geo.corrections import apply_corrections, resolve_safe_corrections_path
 from maps4u.labels.engine import place_labels
 from maps4u.layout.furniture import compose_furniture
 from maps4u.layout.templates import get_template
@@ -106,10 +106,15 @@ def execute_job_pipeline(job_id: str, settings: Settings) -> dict[str, Any]:
         features = load_features_from_gpkg(extract.gpkg_path)
         corr_sha: str | None = None
         if corrections_ref:
-            corr_path = Path(str(corrections_ref))
-            if corr_path.is_file():
-                features, _warnings = apply_corrections(features, corr_path)
-                corr_sha = sha256_hex(corr_path.read_bytes())
+            with db_session(settings.db_path) as corr_conn:
+                corr_path = resolve_safe_corrections_path(
+                    str(corrections_ref),
+                    data_dir=settings.maps4u_data_dir,
+                    artifact_dir=settings.artifact_dir,
+                    conn=corr_conn,
+                )
+            features, _warnings = apply_corrections(features, corr_path)
+            corr_sha = sha256_hex(corr_path.read_bytes())
         return {"extract": extract, "features": features, "corrections_sha256": corr_sha}
 
     def _stage_transforming(_jid: str, _ctx: dict[str, Any]) -> dict[str, Any]:

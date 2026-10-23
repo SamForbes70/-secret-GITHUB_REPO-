@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 import sqlite3
 from collections.abc import Iterator
@@ -34,8 +35,56 @@ def db_session(db_path: Path) -> Iterator[sqlite3.Connection]:
         conn.close()
 
 
+def _repair_legacy_geofence_revisions(conn: sqlite3.Connection) -> int:
+    """Repair any legacy unscoped geofence_revisions rows (where revision_id == sha256(geometry_json)) (BUG-007)."""
+    rows = conn.execute(
+        "SELECT revision_id, project_id, geometry_json, created_at, created_by, is_current "
+        "FROM geofence_revisions"
+    ).fetchall()
+    repaired = 0
+    for row in rows:
+        old_rev_id = str(row["revision_id"])
+        proj_id = str(row["project_id"])
+        geom_json = str(row["geometry_json"])
+        geom_sha = hashlib.sha256(geom_json.encode("utf-8")).hexdigest()
+        if old_rev_id != geom_sha:
+            continue
+        scoped_rev_id = hashlib.sha256(f"{proj_id}:{geom_sha}".encode()).hexdigest()
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO geofence_revisions (
+                revision_id, project_id, geometry_json, created_at, created_by, is_current
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                scoped_rev_id,
+                proj_id,
+                geom_json,
+                row["created_at"],
+                row["created_by"],
+                row["is_current"],
+            ),
+        )
+        conn.execute(
+            "UPDATE render_specifications SET geofence_revision = ? "
+            "WHERE project_id = ? AND geofence_revision = ?",
+            (scoped_rev_id, proj_id, old_rev_id),
+        )
+        conn.execute(
+            "UPDATE jobs SET geofence_revision = ? "
+            "WHERE project_id = ? AND geofence_revision = ?",
+            (scoped_rev_id, proj_id, old_rev_id),
+        )
+        conn.execute(
+            "DELETE FROM geofence_revisions WHERE revision_id = ? AND project_id = ?",
+            (old_rev_id, proj_id),
+        )
+        repaired += 1
+    return repaired
+
+
 def run_migrations(db_path: Path) -> list[int]:
-    """Apply all numbered SQL migrations in order idempotently."""
+    """Apply all numbered SQL migrations in order idempotently and repair legacy revision keys."""
     applied_now: list[int] = []
     with db_session(db_path) as conn:
         conn.execute(
@@ -60,4 +109,5 @@ def run_migrations(db_path: Path) -> list[int]:
                 (version, datetime.now(UTC).isoformat()),
             )
             applied_now.append(version)
+        _repair_legacy_geofence_revisions(conn)
     return applied_now

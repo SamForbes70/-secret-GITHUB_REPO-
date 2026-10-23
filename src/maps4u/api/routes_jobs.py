@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -32,7 +33,7 @@ from maps4u.core.ids import canonical_json_bytes, make_job_id, make_spec_id, sha
 from maps4u.core.logging import append_audit_jsonl
 from maps4u.core.schemas import JobCreateRequest, JobResponse
 from maps4u.core.state import GOVERNED_OUTPUT_FILES, transition_job_state
-from maps4u.geo.corrections import load_and_validate_corrections
+from maps4u.geo.corrections import load_and_validate_corrections, resolve_safe_corrections_path
 from maps4u.render.style_engine import load_style_by_ref
 from maps4u.worker.executor import execute_job_pipeline
 from maps4u.worker.tasks import celery_app, run_job_task
@@ -204,6 +205,14 @@ def create_job(
                 status_code=404,
             )
 
+        if req.corrections_ref is not None:
+            resolve_safe_corrections_path(
+                req.corrections_ref,
+                data_dir=settings.maps4u_data_dir,
+                artifact_dir=settings.artifact_dir,
+                conn=conn,
+            )
+
         spec_payload = {
             "project_id": req.project_id,
             "geofence_revision": req.geofence_revision,
@@ -257,30 +266,38 @@ def create_job(
             ),
         )
 
-        conn.execute(
-            """
-            INSERT INTO jobs (
-                job_id, project_id, geofence_revision, spec_id, area_name,
-                geofence_geojson, paper, orientation, edition, style_ref,
-                corrections_ref, status, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'created', ?, ?)
-            """,
-            (
-                job_id,
-                req.project_id,
-                req.geofence_revision,
-                spec_id,
-                str(proj["area_name"]),
-                str(rev["geometry_json"]),
-                req.paper,
-                req.orientation,
-                req.edition,
-                style_ref,
-                req.corrections_ref,
-                now_iso,
-                now_iso,
-            ),
-        )
+        try:
+            conn.execute(
+                """
+                INSERT INTO jobs (
+                    job_id, project_id, geofence_revision, spec_id, area_name,
+                    geofence_geojson, paper, orientation, edition, style_ref,
+                    corrections_ref, status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'created', ?, ?)
+                """,
+                (
+                    job_id,
+                    req.project_id,
+                    req.geofence_revision,
+                    spec_id,
+                    str(proj["area_name"]),
+                    str(rev["geometry_json"]),
+                    req.paper,
+                    req.orientation,
+                    req.edition,
+                    style_ref,
+                    req.corrections_ref,
+                    now_iso,
+                    now_iso,
+                ),
+            )
+        except sqlite3.IntegrityError as exc:
+            raise Maps4UError(
+                E_STATE_ILLEGAL,
+                f"Job {job_id!r} already exists (concurrent duplicate submission rejected)",
+                details={"job_id": job_id, "spec_id": spec_id},
+                status_code=409,
+            ) from exc
         conn.execute(
             "INSERT INTO job_events (job_id, ts, stage, event, payload_json) VALUES (?, ?, 'created', 'job_created', ?)",
             (job_id, now_iso, spec_json),

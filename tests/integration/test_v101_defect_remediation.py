@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import shutil
 import threading
@@ -75,8 +76,8 @@ def test_bug001_runtime_dependencies_declared_and_pdf_render_works(tmp_path: Pat
     pyproject_data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     deps = " ".join(pyproject_data["project"]["dependencies"]).lower()
     required_pkgs = (
-        "pypdf2", "pillow", "reportlab", "pycairo", "fastapi",
-        "celery", "redis", "geopandas", "shapely", "pyproj",
+        "pypdf2", "pillow", "fastapi", "celery",
+        "redis", "geopandas", "shapely", "pyproj",
     )
     for required_pkg in required_pkgs:
         assert required_pkg in deps, f"Missing runtime dependency in pyproject.toml: {required_pkg}"
@@ -200,6 +201,23 @@ def test_bug003_authentication_and_rbac_enforced(tmp_path: Path) -> None:
     assert app_r.json()["status"] == "finalized"
     assert app_r.json()["reviewer"] == "claire.reviewer"
 
+    # Arbitrary file paths / path traversal in corrections_ref are blocked (422 E_CORRECTIONS_INVALID)
+    for bad_corr_ref in ("/etc/passwd", "../../pyproject.toml", "../outside.yaml"):
+        bad_corr_resp = client.post(
+            "/api/jobs",
+            json={
+                "project_id": pid,
+                "geofence_revision": rid,
+                "paper": "A4",
+                "orientation": "landscape",
+                "edition": f"badcorr-{abs(hash(bad_corr_ref)) % 1000}",
+                "corrections_ref": bad_corr_ref,
+            },
+            headers=op_headers,
+        )
+        assert bad_corr_resp.status_code == 422
+        assert bad_corr_resp.json()["error"]["code"] == "E_CORRECTIONS_INVALID"
+
 
 # ---------------------------------------------------------------------------
 # BUG-004: Celery worker task executes jobs when queue mode is celery
@@ -311,6 +329,20 @@ def test_bug006_duplicate_submission_rejected_and_reproduce_endpoint(tmp_path: P
     assert repro_r.json()["matched"] is True
     assert repro_r.json()["reproduced_pdf_sha256"] == locked_sha
 
+    # Concurrent multi-threaded job submissions: exactly 1 succeeds (201), 5 receive 409 conflict
+    concurrent_payload = {
+        "project_id": proj["project_id"],
+        "geofence_revision": rev["revision_id"],
+        "paper": "A4",
+        "orientation": "landscape",
+        "edition": "concurrent-race-1",
+    }
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+        futures = [pool.submit(lambda: client.post("/api/jobs", json=concurrent_payload).status_code) for _ in range(6)]
+        statuses = [f.result() for f in futures]
+    assert statuses.count(201) == 1
+    assert statuses.count(409) == 5
+
 
 # ---------------------------------------------------------------------------
 # BUG-007: Geofence revision IDs are project-scoped; no cross-project collision
@@ -342,6 +374,21 @@ def test_bug007_geofence_revision_ids_scoped_per_project(tmp_path: Path) -> None
     p2_revs = client.get(f"/api/projects/{p2}/revisions").json()
     assert len(p1_revs) == 1 and p1_revs[0]["revision_id"] == rev1["revision_id"]
     assert len(p2_revs) == 1 and p2_revs[0]["revision_id"] == rev2["revision_id"]
+
+    # Verify legacy unscoped revision repair migration on existing database records
+    legacy_coords = [[[153.08, -26.66], [153.10, -26.66], [153.10, -26.64], [153.08, -26.64], [153.08, -26.66]]]
+    legacy_geom_json = json.dumps({"type": "Polygon", "coordinates": legacy_coords})
+    legacy_geom_sha = __import__("hashlib").sha256(legacy_geom_json.encode("utf-8")).hexdigest()
+    with db_session(settings.db_path) as conn:
+        conn.execute(
+            "INSERT INTO geofence_revisions (revision_id, project_id, geometry_json, created_at, created_by, is_current) "
+            "VALUES (?, ?, ?, '2026-01-01T00:00:00Z', 'legacy_user', 0)",
+            (legacy_geom_sha, p1, legacy_geom_json),
+        )
+    run_migrations(settings.db_path)
+    repaired_revs = client.get(f"/api/projects/{p1}/revisions").json()
+    assert all(r["revision_id"] != legacy_geom_sha for r in repaired_revs)
+    assert any(r["geometry_sha256"] == legacy_geom_sha for r in repaired_revs)
 
 
 # ---------------------------------------------------------------------------
@@ -417,7 +464,21 @@ def test_bug008_failed_qa_and_corrupted_pdf_block_proof_ready_and_approval(tmp_p
 # ---------------------------------------------------------------------------
 # BUG-009: Unexpected pipeline exceptions transition to failed & allow retry
 # ---------------------------------------------------------------------------
-@pytest.mark.parametrize("fail_stage", ["acquiring", "rendering", "verifying"])
+@pytest.mark.parametrize(
+    "fail_stage",
+    [
+        "validating",
+        "queued",
+        "assessing",
+        "acquiring",
+        "transforming",
+        "styling",
+        "labelling",
+        "composing",
+        "rendering",
+        "verifying",
+    ],
+)
 def test_bug009_unexpected_pipeline_exceptions_transition_to_failed_and_retry(
     tmp_path: Path, fail_stage: str
 ) -> None:
@@ -436,18 +497,19 @@ def test_bug009_unexpected_pipeline_exceptions_transition_to_failed_and_retry(
     def _boom(_jid: str, _ctx: dict[str, Any]) -> dict[str, Any]:
         raise RuntimeError(f"Simulated unexpected crash at {fail_stage}")
 
-    all_stages = [
-        ("validating", _ok),
-        ("queued", _ok),
-        ("assessing", _ok),
-        ("acquiring", _boom if fail_stage == "acquiring" else _ok),
-        ("transforming", _ok),
-        ("styling", _ok),
-        ("labelling", _ok),
-        ("composing", _ok),
-        ("rendering", _boom if fail_stage == "rendering" else _ok),
-        ("verifying", _boom if fail_stage == "verifying" else _ok),
+    stage_names = [
+        "validating",
+        "queued",
+        "assessing",
+        "acquiring",
+        "transforming",
+        "styling",
+        "labelling",
+        "composing",
+        "rendering",
+        "verifying",
     ]
+    all_stages = [(s, _boom if s == fail_stage else _ok) for s in stage_names]
     runner = PipelineRunner(settings)
     with pytest.raises(Maps4UError) as exc_info:
         runner.run_stages(job_id, all_stages)
