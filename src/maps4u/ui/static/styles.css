@@ -26,13 +26,24 @@ body {
   font-size: 0.82rem;
   color: #94a3b8;
 }
+.error-banner {
+  background: #fee2e2;
+  color: #991b1b;
+  border-bottom: 1px solid #f87171;
+  padding: 8px 20px;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.hidden {
+  display: none !important;
+}
 .workspace {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
 .sidebar {
-  width: 390px;
+  width: 420px;
   background: #ffffff;
   border-right: 1px solid #e2e8f0;
   padding: 14px;
@@ -58,12 +69,17 @@ label {
   margin-bottom: 8px;
   color: #334155;
 }
-input, select {
+input, select, textarea {
   width: 100%;
   padding: 6px 8px;
   margin-top: 3px;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.82rem;
+}
+textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .row {
   display: flex;
@@ -81,6 +97,7 @@ button {
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+  font-size: 0.8rem;
 }
 button:disabled {
   background: #94a3b8;
@@ -88,6 +105,38 @@ button:disabled {
 }
 button.secondary {
   background: #64748b;
+}
+button.btn-approve {
+  background: #16a34a;
+}
+button.btn-reject {
+  background: #dc2626;
+}
+.artifact-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.artifact-btn {
+  background: #0f172a;
+  padding: 5px 8px;
+  font-size: 0.75rem;
+}
+.qa-preview {
+  margin-top: 8px;
+  padding: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 4px;
+  font-size: 0.74rem;
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+.error-text {
+  color: #dc2626;
+  margin-top: 4px;
 }
 .badge {
   padding: 6px 12px;

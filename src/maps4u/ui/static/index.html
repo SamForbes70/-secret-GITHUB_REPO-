@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Maps4U — Street Map Geofence &amp; Viability Studio</title>
+  <title>Maps4U — Street Map Geofence, Viability &amp; Proof Studio</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
@@ -11,13 +11,25 @@
   <header class="topbar">
     <div>
       <h1>Maps4U Street Map Production Studio</h1>
-      <span class="subtitle">Geofence Editor, Print-Scale &amp; Legibility Viability Assessment</span>
+      <span class="subtitle">Geofence Editor, Print-Scale Viability, Governed Pipeline &amp; Proof Review</span>
     </div>
     <div id="viability-badge" class="badge badge-neutral">No Geofence Drawn</div>
   </header>
 
+  <div id="error-banner" class="error-banner hidden" role="alert"></div>
+
   <main class="workspace">
     <aside class="sidebar">
+      <section class="panel">
+        <h2>0. Operator / Reviewer Access</h2>
+        <label>Bearer Token (Operator or Reviewer)
+          <input id="auth-token" type="password" placeholder="Optional in dev/test; required in prod" />
+        </label>
+        <label>Operator / Reviewer Identity
+          <input id="operator-identity" type="text" value="operator" placeholder="e.g. sam.forbes" />
+        </label>
+      </section>
+
       <section class="panel">
         <h2>1. Map Project</h2>
         <label>Area Name
@@ -31,7 +43,7 @@
       </section>
 
       <section class="panel">
-        <h2>2. Paper &amp; Orientation</h2>
+        <h2>2. Paper, Orientation &amp; Style</h2>
         <div class="row">
           <label>Paper Size
             <select id="paper-select">
@@ -45,6 +57,14 @@
               <option value="landscape" selected>Landscape</option>
               <option value="portrait">Portrait</option>
             </select>
+          </label>
+        </div>
+        <div class="row">
+          <label>Style Pack
+            <input id="style-ref" type="text" value="mcy/v1" />
+          </label>
+          <label>Edition
+            <input id="edition-input" type="text" value="2026-10" />
           </label>
         </div>
         <div class="row">
@@ -70,6 +90,33 @@
         <ul id="revisions-list" class="revisions-list">
           <li class="muted">No revisions saved yet.</li>
         </ul>
+      </section>
+
+      <section class="panel">
+        <h2>5. Governed Job Execution &amp; Artifacts</h2>
+        <div id="job-status-readout" class="readout">No active job selected.</div>
+        <div class="row">
+          <button id="btn-run-job" type="button" disabled>Run Job Pipeline</button>
+          <button id="btn-refresh-job" type="button" class="secondary" disabled>Refresh Status</button>
+          <button id="btn-reproduce-job" type="button" class="secondary" disabled>Verify Reproduce</button>
+        </div>
+        <div id="artifact-links" class="artifact-links"></div>
+        <pre id="qa-preview" class="qa-preview hidden"></pre>
+      </section>
+
+      <section class="panel">
+        <h2>6. Proof Review &amp; Client Corrections</h2>
+        <label>Review Comment (Mandatory for Reject)
+          <input id="review-comment" type="text" placeholder="Approval note or mandatory rejection reason" />
+        </label>
+        <div class="row">
+          <button id="btn-approve-job" type="button" class="btn-approve" disabled>Approve &amp; Finalize</button>
+          <button id="btn-reject-job" type="button" class="btn-reject" disabled>Reject Proof</button>
+        </div>
+        <label style="margin-top:8px;">YAML Client Corrections
+          <textarea id="corrections-yaml" rows="4" placeholder="corrections:&#10;  - feature: road&#10;    osm_id: 9002&#10;    action: rename&#10;    name: 'First Ave Esplanade'"></textarea>
+        </label>
+        <button id="btn-submit-corrections" type="button" class="secondary" disabled>Submit Corrections &amp; Spawn Revision Job</button>
       </section>
     </aside>
 
