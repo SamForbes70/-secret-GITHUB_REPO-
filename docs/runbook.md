@@ -1,15 +1,100 @@
-# Maps4U Operator Runbook (`S6.T2`)
+# Maps4U Operator Runbook (`v1.0.0-mvp`)
 
-## 1. Starting the System
-Run `docker compose up -d --build` (or `make run`). Verify service health at `http://localhost:8000/healthz` and `http://localhost:8000/readyz`.
+This runbook covers day-to-day operation of the Maps4U Street Map System, from service startup and geofence viability checks through proof generation, QA review, client YAML corrections, approval locking, and reproducibility verification.
+
+---
+
+## 1. Starting & Verifying the System
+
+### Docker Compose Mode (Production / Pilot Appliance)
+```bash
+docker compose up -d --build
+docker compose ps
+curl -fsS http://127.0.0.1:8000/healthz
+curl -fsS http://127.0.0.1:8000/readyz
+```
+
+### Local Operator Mode (Inline Execution)
+```bash
+make run
+# Or explicitly:
+MAPS4U_QUEUE=inline uvicorn maps4u.api.main:app --host 127.0.0.1 --port 8080
+```
+
+--- 
 
 ## 2. Step-by-Step Map Production Workflow
-1. **Create a Project:** Open `http://localhost:8000/` or `POST /api/projects` with `{"area_name": "Maroochydore"}`.
-2. **Draw Geofence & Check Viability:** Draw the polygon on the Leaflet map (or load the Maroochydore preset), choose `A3`/`A4`/`A5` and `landscape`/`portrait`, and review the live scale denominator (`1:N`) and minimum font height (`>= 1.5 mm`).
-3. **Save Geofence Revision & Create Job:** Click **Save Geofence & Create Job** (`POST /api/projects/{id}/geofence` followed by `POST /api/jobs`).
-4. **Execute Render Pipeline:** Trigger `POST /api/jobs/{job_id}/run`. The worker executes all 11 governed stages (`validating` through `proof_ready`).
-5. **Inspect Governed Proof Bundle:** Download `proof.pdf`, `thumb.png`, `qa-report.md`, `qa-report.json`, and `manifest.json` from `/api/jobs/{job_id}/artifacts/{name}`.
-6. **Approve or Reject:**
-   - To approve for print: `POST /api/jobs/{job_id}/approve` with `{"reviewer": "name", "comment": "Approved"}`. This locks `proof_sha256` in `review_decisions`.
-   - To reject: `POST /api/jobs/{job_id}/reject` with a mandatory non-blank `comment` (`422` if blank).
-7. **Apply Client Corrections:** Submit YAML corrections via `POST /api/jobs/{job_id}/corrections` to spawn a new child job while keeping the parent job and cached `.gpkg` immutable.
+
+### Step 1: Create or Select a Project
+- **Web UI:** Open `http://127.0.0.1:8000/` (or `:8080`), enter the area name (e.g., `Maroochydore`), and click **Create Project**.
+- **API:** `POST /api/projects` with `{"area_name": "Maroochydore", "reference": "MCY-01"}`.
+
+### Step 2: Draw Geofence & Run Viability Assessment
+1. Draw a polygon on the Leaflet map or load a preset/GeoJSON polygon (`<= 600 km²`, `<= 200` vertices per ring).
+2. Select paper size (`A3`, `A4`, `A5`) and orientation (`landscape`, `portrait`).
+3. Click **Check Viability** (`POST /api/viability`).
+4. Inspect the returned metrics:
+   - **`viable: true`** — Scale denominator (`1:N`) and minimum font height (`>= 1.5 mm`) pass all gates.
+   - **`viable: false` (Blocked)** — Review `blockers` and `remediations`:
+     - *Scale too small / font below 1.5 mm:* Switch from `A5` → `A4` or `A4` → `A3`, change orientation to match the geofence aspect ratio, or crop the geofence to a tighter area.
+
+### Step 3: Save Geofence Revision & Create Render Job
+1. Save the polygon revision (`POST /api/projects/{project_id}/geofence`), producing an immutable `revision_id`.
+2. Create the job (`POST /api/jobs`), freezing the `RenderSpec` (`spec_id`).
+
+### Step 4: Execute the 11-Stage Pipeline
+Trigger `POST /api/jobs/{job_id}/run`. The pipeline progresses deterministically through:
+1. `validating` — Verifies frozen spec, template, and style schema.
+2. `queued` → `assessing` — Confirms scale denominator and metric UTM bounds.
+3. `acquiring` — Fetches Overpass data (or reuses cached `.gpkg` snapshot by bbox SHA-256).
+4. `transforming` — Loads 8 GeoPackage layers and applies any registered YAML client corrections.
+5. `styling` — Builds the scale-band `DrawPlan` from `styles/mcy/v1/style.yaml`.
+6. `labelling` — Places collision-free street, suburb, landmark, water, and park labels via `STRtree`.
+7. `composing` — Generates grid collar (`A1..H6`), alphabetical street index, scale bar, north arrow, legend, title block, and ODbL attribution.
+8. `rendering` — Emits vector `proof.pdf` and raster `thumb.png` via `CairoCanvas`.
+9. `verifying` — Runs 7-gate QA preflight (`qa-report.json` + `qa-report.md`) and writes `manifest.json`.
+10. `proof_ready` — Verified governed bundle is ready for operator review.
+
+### Step 5: Inspect the Governed 5-Artifact Bundle
+Download and review:
+- `/api/jobs/{job_id}/artifacts/thumb.png` (quick visual layout check)
+- `/api/jobs/{job_id}/artifacts/qa-report.md` (verify `Verdict: PASS`, `Blockers: 0`, `Overlaps: 0`, `Clipped: 0`)
+- `/api/jobs/{job_id}/artifacts/proof.pdf` (inspect vector paths and typography at 400% zoom)
+- `/api/jobs/{job_id}/artifacts/manifest.json` (verify input/output SHA-256 provenance)
+
+### Step 6: Approve or Reject the Proof
+- **Approve for Print (`POST /api/jobs/{job_id}/approve`):**
+  - Locks `proof_sha256` in `review_decisions` and transitions the job to `finalized`.
+- **Reject Proof (`POST /api/jobs/{job_id}/reject`):**
+  - Requires a non-blank `comment` explaining required changes (`422` if blank). Transitions the job to `rejected`.
+
+### Step 7: Apply Client Corrections (When Needed)
+Submit a YAML corrections payload to `POST /api/jobs/{job_id}/corrections` (see `docs/corrections-guide.md`). This validates the YAML against `schemas/corrections.schema.json`, stores it in `<MAPS4U_DATA_DIR>/corrections/`, and creates a linked child job ready to run via `POST /api/jobs/{new_job_id}/run`.
+
+---
+
+## 3. Reproducibility Verification (`reproduce()`)
+
+To prove that any `finalized` or `proof_ready` job can be regenerated byte-for-byte from its frozen specification and cached `.gpkg` snapshot:
+
+```bash
+python -c "
+from pathlib import Path
+from maps4u.core.config import get_settings
+from maps4u.bundle.archive import reproduce
+res = reproduce('<JOB_ID>', get_settings(), Path('/tmp/repro-check'))
+print(res)
+assert res['matched'] is True
+"
+```
+
+---
+
+## 4. Troubleshooting Common Issues
+
+| Symptom / Error Code | Root Cause | Resolution |
+| :--- | :--- | :--- |
+| `E_GEO_TOO_LARGE` (`422`) | Geofence area `> 600 km²` or ring vertices `> 200` | Simplify polygon vertices or reduce the bounding area. |
+| `E_OVERPASS_UNAVAILABLE` | Upstream Overpass API rate-limited or unreachable | Wait for automatic backoff (`10s`, `30s`, `90s`) or call `POST /api/jobs/{job_id}/retry`. Cached snapshots avoid repeat network calls. |
+| `E_CORRECTIONS_INVALID` (`422`) | Malformed YAML, unknown action, or blank rejection comment | Validate YAML structure against `docs/corrections-guide.md` and `schemas/corrections.schema.json`. |
+| `E_STATE_ILLEGAL` (`409`) | Attempting to approve/reject a job not in `proof_ready` | Run `POST /api/jobs/{job_id}/run` first and confirm status is `proof_ready`. |

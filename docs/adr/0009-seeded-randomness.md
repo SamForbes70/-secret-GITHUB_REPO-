@@ -1,5 +1,15 @@
 # ADR-0009: Zero Unseeded Randomness in Cartographic Pipeline
 
-- **Status:** Accepted
-- **Context:** Label placement and tie-breaking must be 100% repeatable.
-- **Decision:** Any stochastic algorithm requires an explicit integer seed (default `0`) recorded in the render specification; all feature collections use deterministic multi-key sorting.
+- **Status:** Accepted (Stage 4 Gate `G4`)
+- **Date:** 2026-10-22
+- **Owners:** MAPS4U Engineering
+
+## Context
+Nondeterministic set iteration or unseeded tie-breaking during label collision resolution causes labels to shift between runs.
+
+## Decision
+1. Freeze `"seed": 0` in every canonical `RenderSpec`.
+2. Order all label candidates deterministically by `(priority_rank, -length_m, osm_id, text)` before `STRtree` collision checks (`src/maps4u/labels/engine.py`).
+
+## Verification
+- `tests/unit/test_stage4_labels_and_furniture.py`

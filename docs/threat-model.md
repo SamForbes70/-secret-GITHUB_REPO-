@@ -1,6 +1,9 @@
-# MAPS4U Threat Model Note (v0.1.0 — Stage 0 Baseline)
+# Maps4U Security & Operational Threat Model (`v1.0.0-mvp`)
 
-1. **Untrusted Geometry / Upload Inputs:** Mitigated via strict Pydantic validation, polygon vertex/area caps (<=200 vertices/ring, <=600 km²), and `yaml.safe_load` with JSON Schema validation on corrections files (<=1 MB).
-2. **External Provider Availability (Overpass):** Mitigated via concurrency=1, retry/backoff ladder, raw-bytes caching, and deterministic snapshot reuse.
-3. **Secret Leakage:** No secrets in repository; `.env` gitignored; structured logging redacts sensitive fields.
-4. **Unreviewed AI Decisions:** Zero AI components in the runtime cartographic pipeline.
+| Threat Category | Attack Vector / Operational Risk | Implemented Mitigation (`v1.0.0-mvp`) |
+| :--- | :--- | :--- |
+| **1. Malicious or Oversized Geofence Input** | Operator or API caller submits a huge polygon (e.g., continent-sized) or degenerate self-intersecting ring to exhaust memory or Overpass quota. | `maps4u.geo.crs.validate_and_canonicalise_geofence` enforces `Polygon`/`MultiPolygon` type, Shapely `is_valid` check, `<= 200` vertices per ring, `<= 3` multipolygon parts, and metric UTM area `<= 600.0 km²` (`E_GEO_INVALID`, `E_GEO_TOO_LARGE`). |
+| **2. Unsafe YAML Deserialization / Injection** | Crafted client corrections or style YAML attempts arbitrary Python object instantiation or path traversal. | Parsed strictly via `yaml.safe_load` and validated against `schemas/corrections.schema.json` and `schemas/style.schema.json`. Artifact downloads whitelist `GOVERNED_OUTPUT_FILES` to prevent path traversal. |
+| **3. Upstream Overpass Rate-Limiting / Outage** | Concurrent requests trigger HTTP 429/504 from public Overpass endpoints. | `MAPS4U_OVERPASS_MAX_CONCURRENCY=1`, deterministic backoff ladder (`10s`, `30s`, `90s`), raw response byte archiving, and SHA-256 `.gpkg` snapshot caching so repeat renders make zero network calls. |
+| **4. Unaudited Proof Tampering** | Proof PDF is replaced or modified after operator sign-off. | `POST /api/jobs/{job_id}/approve` computes and locks `proof_sha256` inside `review_decisions` and `bundles.output_sha256`; `reproduce(job_id)` re-verifies exact byte parity. |
+| **5. Non-Deterministic / Hallucinated Output** | Nondeterministic label placement or AI inference alters street geometry or names. | Zero AI/LLM components exist in the runtime pipeline. All spatial indexing (`STRtree`), sorting (`osm_id` tie-breaking), and PDF metadata timestamps are 100% deterministic. |
