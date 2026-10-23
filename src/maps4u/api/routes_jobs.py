@@ -1,35 +1,52 @@
-"""Job creation, execution, artifact retrieval, approve/reject review locking, and corrections routes (§7.1, Stage 5 S5.T1)."""
+"""Job creation, execution, artifact retrieval, review locking, and corrections routes (v1.0.1 hardened)."""
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from maps4u.api.deps import get_settings
-from maps4u.core.config import Settings
+from maps4u.api.deps import (
+    AuthPrincipal,
+    get_settings,
+    require_authenticated,
+    require_operator,
+    require_reviewer,
+)
+from maps4u.bundle.archive import reproduce
+from maps4u.core.config import Settings, resolve_resource_path
 from maps4u.core.db import db_session
-from maps4u.core.errors import E_CORRECTIONS_INVALID, E_NOT_FOUND, Maps4UError
+from maps4u.core.errors import (
+    E_CORRECTIONS_INVALID,
+    E_NOT_FOUND,
+    E_STATE_ILLEGAL,
+    E_STORAGE,
+    Maps4UError,
+)
 from maps4u.core.ids import canonical_json_bytes, make_job_id, make_spec_id, sha256_hex
 from maps4u.core.logging import append_audit_jsonl
 from maps4u.core.schemas import JobCreateRequest, JobResponse
 from maps4u.core.state import GOVERNED_OUTPUT_FILES, transition_job_state
 from maps4u.geo.corrections import load_and_validate_corrections
+from maps4u.render.style_engine import load_style_by_ref
 from maps4u.worker.executor import execute_job_pipeline
+from maps4u.worker.tasks import celery_app, run_job_task
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
 
 class ReviewDecisionRequest(BaseModel):
-    reviewer: str = Field(..., min_length=1, max_length=120)
+    reviewer: str = Field(default="reviewer", min_length=1, max_length=120)
     comment: str | None = None
 
 
 class RejectDecisionRequest(BaseModel):
-    reviewer: str = Field(..., min_length=1, max_length=120)
+    reviewer: str = Field(default="reviewer", min_length=1, max_length=120)
     comment: str = Field(..., min_length=1)
 
 
@@ -58,15 +75,116 @@ def _row_to_job_response(row: Any) -> JobResponse:
     )
 
 
+def _serialize_settings(settings: Settings) -> dict[str, Any]:
+    return {
+        "MAPS4U_ENV": settings.maps4u_env,
+        "MAPS4U_QUEUE": settings.maps4u_queue,
+        "MAPS4U_DATA_DIR": str(settings.maps4u_data_dir),
+        "MAPS4U_DB_PATH": str(settings.db_path),
+        "MAPS4U_ARTIFACT_DIR": str(settings.artifact_dir),
+        "MAPS4U_CACHE_DIR": str(settings.cache_dir),
+        "MAPS4U_REDIS_URL": settings.redis_url,
+        "MAPS4U_OVERPASS_URL": settings.maps4u_overpass_url,
+        "MAPS4U_OVERPASS_TIMEOUT_S": settings.maps4u_overpass_timeout_s,
+        "MAPS4U_OVERPASS_MAX_CONCURRENCY": settings.maps4u_overpass_max_concurrency,
+        "MAPS4U_CACHE_MAX_AGE_DAYS": settings.maps4u_cache_max_age_days,
+        "MAPS4U_DEFAULT_STYLE": settings.maps4u_default_style,
+        "MAPS4U_STYLE_DIR": str(settings.maps4u_style_dir),
+        "MAPS4U_CONFIG_DIR": str(settings.maps4u_config_dir),
+        "MAPS4U_SCHEMA_DIR": str(settings.maps4u_schema_dir),
+        "MAPS4U_MIN_FONT_MM": settings.maps4u_min_font_mm,
+        "MAPS4U_RENDER_DPI": settings.maps4u_render_dpi,
+        "MAPS4U_INSETS_ENABLED": settings.maps4u_insets_enabled,
+    }
+
+
+def _verify_artifact_integrity(job_id: str, artifact_name: str, path: Path, settings: Settings) -> None:
+    """Verify artifact SHA-256 against manifest.json and locked review_decisions (BUG-015)."""
+    job_dir = settings.artifact_dir / job_id
+    actual_bytes = path.read_bytes()
+    actual_sha = sha256_hex(actual_bytes)
+
+    manifest_path = job_dir / "manifest.json"
+    if manifest_path.is_file():
+        try:
+            manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise Maps4UError(
+                E_STORAGE,
+                f"Manifest integrity error for job {job_id!r}: {exc}",
+                details={"job_id": job_id, "artifact": artifact_name},
+                status_code=409,
+            ) from exc
+
+        manifest_copy = dict(manifest_data)
+        recorded_manifest_sha = manifest_copy.pop("manifest_sha256", None)
+        if not recorded_manifest_sha or sha256_hex(canonical_json_bytes(manifest_copy)) != recorded_manifest_sha:
+            raise Maps4UError(
+                E_STORAGE,
+                f"Manifest self-hash tampering detected for job {job_id!r}",
+                details={"job_id": job_id, "artifact": artifact_name},
+                status_code=409,
+            )
+
+        key_map = {
+            "proof.pdf": "proof_pdf",
+            "thumb.png": "thumb_png",
+            "qa-report.json": "qa_report_json",
+            "qa-report.md": "qa_report_md",
+        }
+        out_key = key_map.get(artifact_name)
+        if out_key:
+            expected_sha = str(manifest_data.get("outputs", {}).get(out_key, {}).get("sha256", ""))
+            if expected_sha and actual_sha != expected_sha:
+                raise Maps4UError(
+                    E_STORAGE,
+                    f"Artifact integrity check failed for {artifact_name!r} on job {job_id!r}: SHA-256 mismatch",
+                    details={
+                        "job_id": job_id,
+                        "artifact": artifact_name,
+                        "expected_sha256": expected_sha,
+                        "actual_sha256": actual_sha,
+                    },
+                    status_code=409,
+                )
+
+    if artifact_name == "proof.pdf":
+        with db_session(settings.db_path) as conn:
+            rev_row = conn.execute(
+                "SELECT proof_sha256 FROM review_decisions "
+                "WHERE job_id = ? AND decision = 'approved' ORDER BY rowid DESC LIMIT 1",
+                (job_id,),
+            ).fetchone()
+        if rev_row is not None:
+            locked_sha = str(rev_row["proof_sha256"])
+            if actual_sha != locked_sha:
+                raise Maps4UError(
+                    E_STORAGE,
+                    f"Post-approval modification detected on proof.pdf for finalized job {job_id!r}",
+                    details={
+                        "job_id": job_id,
+                        "locked_proof_sha256": locked_sha,
+                        "actual_sha256": actual_sha,
+                    },
+                    status_code=409,
+                )
+
+
 @router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 def create_job(
     req: JobCreateRequest,
     settings: Settings = Depends(get_settings),
+    _principal: AuthPrincipal = Depends(require_operator),
 ) -> JobResponse:
     now = datetime.now(UTC)
     now_iso = now.isoformat()
     yyyymm = now.strftime("%Y-%m")
     style_ref = req.style_ref or settings.maps4u_default_style
+
+    # Validate style_ref upfront so invalid styles fail fast (BUG-013)
+    style_schema_path = resolve_resource_path("schemas/style.schema.json", explicit_base=settings.maps4u_schema_dir)
+    loaded_style = load_style_by_ref(style_ref, style_dir=settings.maps4u_style_dir, schema_path=style_schema_path)
+    style_ref = loaded_style.style_ref
 
     with db_session(settings.db_path) as conn:
         proj = conn.execute(
@@ -98,6 +216,26 @@ def create_job(
         }
         spec_id = make_spec_id(spec_payload)
         spec_json = canonical_json_bytes(spec_payload).decode("utf-8")
+        job_id = make_job_id(str(proj["area_name"]), yyyymm, req.edition, suffix=spec_id[:6])
+
+        existing_job = conn.execute(
+            "SELECT job_id, status FROM jobs WHERE job_id = ?",
+            (job_id,),
+        ).fetchone()
+        if existing_job is not None:
+            raise Maps4UError(
+                E_STATE_ILLEGAL,
+                (
+                    f"Job {job_id!r} already exists in state {existing_job['status']!r}; "
+                    "duplicate submission rejected (use /reproduce or a new edition)"
+                ),
+                details={
+                    "job_id": job_id,
+                    "status": str(existing_job["status"]),
+                    "spec_id": spec_id,
+                },
+                status_code=409,
+            )
 
         conn.execute(
             """
@@ -119,10 +257,9 @@ def create_job(
             ),
         )
 
-        job_id = make_job_id(str(proj["area_name"]), yyyymm, req.edition, suffix=spec_id[:6])
         conn.execute(
             """
-            INSERT OR REPLACE INTO jobs (
+            INSERT INTO jobs (
                 job_id, project_id, geofence_revision, spec_id, area_name,
                 geofence_geojson, paper, orientation, edition, style_ref,
                 corrections_ref, status, created_at, updated_at
@@ -173,6 +310,7 @@ def list_jobs(
     status_filter: str | None = None,
     limit: int = 50,
     settings: Settings = Depends(get_settings),
+    _principal: AuthPrincipal = Depends(require_authenticated),
 ) -> list[JobResponse]:
     with db_session(settings.db_path) as conn:
         if status_filter:
@@ -192,6 +330,7 @@ def list_jobs(
 def get_job(
     job_id: str,
     settings: Settings = Depends(get_settings),
+    _principal: AuthPrincipal = Depends(require_authenticated),
 ) -> JobResponse:
     with db_session(settings.db_path) as conn:
         row = conn.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
@@ -204,9 +343,77 @@ def get_job(
 def run_job_endpoint(
     job_id: str,
     settings: Settings = Depends(get_settings),
+    _principal: AuthPrincipal = Depends(require_operator),
 ) -> JobResponse:
+    with db_session(settings.db_path) as conn:
+        row = conn.execute("SELECT status FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
+        if row is None:
+            raise Maps4UError(E_NOT_FOUND, f"Job {job_id!r} not found", status_code=404)
+        current_status = str(row["status"])
+        if current_status not in ("created", "queued", "failed"):
+            raise Maps4UError(
+                E_STATE_ILLEGAL,
+                f"Job {job_id!r} in state {current_status!r} cannot be dispatched for execution",
+                details={"job_id": job_id, "status": current_status},
+                status_code=409,
+            )
+
+    if settings.maps4u_queue == "celery":
+        with db_session(settings.db_path) as conn:
+            if current_status == "created":
+                transition_job_state(
+                    conn,
+                    job_id=job_id,
+                    target_state="validating",
+                    stage="validating",
+                    event="stage_validating_started",
+                    data_dir=settings.maps4u_data_dir,
+                    artifact_dir=settings.artifact_dir,
+                )
+                transition_job_state(
+                    conn,
+                    job_id=job_id,
+                    target_state="queued",
+                    stage="queued",
+                    event="job_dispatched_celery",
+                    data_dir=settings.maps4u_data_dir,
+                    artifact_dir=settings.artifact_dir,
+                )
+            elif current_status == "failed":
+                transition_job_state(
+                    conn,
+                    job_id=job_id,
+                    target_state="queued",
+                    stage="queued",
+                    event="job_retried_celery",
+                    data_dir=settings.maps4u_data_dir,
+                    artifact_dir=settings.artifact_dir,
+                )
+        celery_app.conf.broker_url = settings.redis_url
+        celery_app.conf.result_backend = settings.redis_url
+        run_job_task.apply_async(
+            args=[job_id],
+            kwargs={"settings_overrides": _serialize_settings(settings)},
+        )
+        return get_job(job_id, settings)
+
     execute_job_pipeline(job_id, settings)
     return get_job(job_id, settings)
+
+
+@router.post("/{job_id}/reproduce")
+def reproduce_job_endpoint(
+    job_id: str,
+    settings: Settings = Depends(get_settings),
+    _principal: AuthPrincipal = Depends(require_operator),
+) -> dict[str, Any]:
+    repro_dir = settings.artifact_dir / job_id / "reproduce"
+    result = reproduce(job_id, settings, repro_dir)
+    append_audit_jsonl(
+        settings.maps4u_data_dir,
+        {"event": "job_reproduced", "job_id": job_id, "matched": result["matched"]},
+    )
+    return result
 
 
 @router.get("/{job_id}/artifacts/{artifact_name}")
@@ -214,6 +421,7 @@ def get_job_artifact(
     job_id: str,
     artifact_name: str,
     settings: Settings = Depends(get_settings),
+    _principal: AuthPrincipal = Depends(require_authenticated),
 ) -> FileResponse:
     if artifact_name not in GOVERNED_OUTPUT_FILES:
         raise Maps4UError(
@@ -228,6 +436,7 @@ def get_job_artifact(
             f"Artifact {artifact_name!r} for job {job_id!r} not found",
             status_code=404,
         )
+    _verify_artifact_integrity(job_id, artifact_name, path, settings)
     media_types = {
         "proof.pdf": "application/pdf",
         "thumb.png": "image/png",
@@ -243,12 +452,18 @@ def approve_job(
     job_id: str,
     req: ReviewDecisionRequest,
     settings: Settings = Depends(get_settings),
+    principal: AuthPrincipal = Depends(require_reviewer),
 ) -> dict[str, Any]:
     pdf_path = settings.artifact_dir / job_id / "proof.pdf"
     if not pdf_path.is_file():
         raise Maps4UError(E_NOT_FOUND, f"Proof PDF for job {job_id!r} not found", status_code=404)
     proof_sha256 = sha256_hex(pdf_path.read_bytes())
     now_iso = datetime.now(UTC).isoformat()
+    effective_reviewer = (
+        principal.identity
+        if (principal.authenticated and principal.identity != principal.role)
+        else req.reviewer
+    )
 
     with db_session(settings.db_path) as conn:
         transition_job_state(
@@ -259,21 +474,26 @@ def approve_job(
             event="job_approved",
             data_dir=settings.maps4u_data_dir,
             artifact_dir=settings.artifact_dir,
-            payload={"reviewer": req.reviewer, "proof_sha256": proof_sha256, "comment": req.comment},
+            payload={
+                "reviewer": effective_reviewer,
+                "authenticated_role": principal.role,
+                "proof_sha256": proof_sha256,
+                "comment": req.comment,
+            },
         )
         conn.execute(
             """
             INSERT INTO review_decisions (job_id, reviewer, decision, comment, proof_sha256, decided_at)
             VALUES (?, ?, 'approved', ?, ?, ?)
             """,
-            (job_id, req.reviewer, req.comment, proof_sha256, now_iso),
+            (job_id, effective_reviewer, req.comment, proof_sha256, now_iso),
         )
 
     return {
         "job_id": job_id,
         "status": "finalized",
         "decision": "approved",
-        "reviewer": req.reviewer,
+        "reviewer": effective_reviewer,
         "proof_sha256": proof_sha256,
         "decided_at": now_iso,
     }
@@ -284,6 +504,7 @@ def reject_job(
     job_id: str,
     req: RejectDecisionRequest,
     settings: Settings = Depends(get_settings),
+    principal: AuthPrincipal = Depends(require_reviewer),
 ) -> dict[str, Any]:
     comment_clean = req.comment.strip()
     if not comment_clean:
@@ -295,6 +516,11 @@ def reject_job(
     pdf_path = settings.artifact_dir / job_id / "proof.pdf"
     proof_sha256 = sha256_hex(pdf_path.read_bytes()) if pdf_path.is_file() else ("0" * 64)
     now_iso = datetime.now(UTC).isoformat()
+    effective_reviewer = (
+        principal.identity
+        if (principal.authenticated and principal.identity != principal.role)
+        else req.reviewer
+    )
 
     with db_session(settings.db_path) as conn:
         transition_job_state(
@@ -305,21 +531,26 @@ def reject_job(
             event="job_rejected",
             data_dir=settings.maps4u_data_dir,
             artifact_dir=settings.artifact_dir,
-            payload={"reviewer": req.reviewer, "comment": comment_clean, "proof_sha256": proof_sha256},
+            payload={
+                "reviewer": effective_reviewer,
+                "authenticated_role": principal.role,
+                "comment": comment_clean,
+                "proof_sha256": proof_sha256,
+            },
         )
         conn.execute(
             """
             INSERT INTO review_decisions (job_id, reviewer, decision, comment, proof_sha256, decided_at)
             VALUES (?, ?, 'rejected', ?, ?, ?)
             """,
-            (job_id, req.reviewer, comment_clean, proof_sha256, now_iso),
+            (job_id, effective_reviewer, comment_clean, proof_sha256, now_iso),
         )
 
     return {
         "job_id": job_id,
         "status": "rejected",
         "decision": "rejected",
-        "reviewer": req.reviewer,
+        "reviewer": effective_reviewer,
         "comment": comment_clean,
         "proof_sha256": proof_sha256,
         "decided_at": now_iso,
@@ -330,6 +561,7 @@ def reject_job(
 def retry_job(
     job_id: str,
     settings: Settings = Depends(get_settings),
+    _principal: AuthPrincipal = Depends(require_operator),
 ) -> JobResponse:
     with db_session(settings.db_path) as conn:
         transition_job_state(
@@ -349,6 +581,7 @@ def submit_job_corrections(
     job_id: str,
     req: CorrectionsSubmitRequest,
     settings: Settings = Depends(get_settings),
+    principal: AuthPrincipal = Depends(require_operator),
 ) -> JobResponse:
     with db_session(settings.db_path) as conn:
         parent = conn.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
@@ -363,8 +596,8 @@ def submit_job_corrections(
     corr_path = corr_dir / f"{corr_id}.yaml"
     corr_path.write_bytes(corr_bytes)
 
-    # Validate against corrections schema before accepting
-    load_and_validate_corrections(corr_path)
+    schema_path = resolve_resource_path("schemas/corrections.schema.json", explicit_base=settings.maps4u_schema_dir)
+    load_and_validate_corrections(corr_path, schema_path=schema_path)
 
     now_iso = datetime.now(UTC).isoformat()
     with db_session(settings.db_path) as conn:
@@ -382,4 +615,4 @@ def submit_job_corrections(
         style_ref=str(parent["style_ref"]),
         corrections_ref=str(corr_path),
     )
-    return create_job(new_req, settings)
+    return create_job(new_req, settings, principal)

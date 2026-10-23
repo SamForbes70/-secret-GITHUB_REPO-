@@ -1,8 +1,9 @@
-"""Full end-to-end job pipeline executor (Stage 5 S5.T1)."""
+"""Full end-to-end job pipeline executor (Stage 5 S5.T1, hardened for BUG-002, BUG-008, BUG-013)."""
 
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -10,9 +11,10 @@ from typing import Any
 from shapely.geometry import shape
 
 from maps4u.bundle.archive import write_manifest
-from maps4u.core.config import Settings
+from maps4u.core.config import Settings, resolve_resource_path
 from maps4u.core.db import db_session
-from maps4u.core.errors import E_NOT_FOUND, Maps4UError
+from maps4u.core.errors import E_NOT_FOUND, E_QA_FAILED, Maps4UError
+from maps4u.core.ids import sha256_hex
 from maps4u.core.models import BBox
 from maps4u.geo.acquire import get_or_fetch
 from maps4u.geo.cache import load_features_from_gpkg
@@ -23,12 +25,41 @@ from maps4u.layout.templates import get_template
 from maps4u.qa.preflight import run_qa
 from maps4u.render.assess import assess_viability
 from maps4u.render.cairo_canvas import DEFAULT_TTF_PATH, CairoCanvas, render_png_thumbnail
-from maps4u.render.style_engine import load_style_yaml, style_plan
+from maps4u.render.style_engine import load_style_by_ref, style_plan
 from maps4u.worker.pipeline import PipelineRunner, StageCallable
 
 
+def _persist_qa_records(db_path: Path, job_id: str, qa: Any, dropped_labels: list[Any]) -> None:
+    with db_session(db_path) as conn:
+        conn.execute("DELETE FROM qa_findings WHERE job_id = ?", (job_id,))
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO qa_results (
+                job_id, report_md_path, report_json_path, min_font_ok, overlaps, clipped, dropped_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                job_id,
+                str(qa.report_md_path),
+                str(qa.report_json_path),
+                1 if qa.min_font_ok else 0,
+                int(qa.overlaps),
+                int(qa.clipped),
+                json.dumps([d.text for d in dropped_labels]),
+            ),
+        )
+        for f in qa.findings:
+            conn.execute(
+                """
+                INSERT INTO qa_findings (job_id, rule, severity, message, evidence_json)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (job_id, f.rule, f.severity, f.message, json.dumps(f.evidence, sort_keys=True)),
+            )
+
+
 def execute_job_pipeline(job_id: str, settings: Settings) -> dict[str, Any]:
-    """Execute all governed stages for job_id from created/queued to proof_ready."""
+    """Execute all governed stages for job_id from created/queued/failed to proof_ready."""
     with db_session(settings.db_path) as conn:
         row = conn.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
         if row is None:
@@ -48,19 +79,25 @@ def execute_job_pipeline(job_id: str, settings: Settings) -> dict[str, Any]:
     spec_id = str(job_data.get("spec_id") or "spec-default")
     corrections_ref = job_data.get("corrections_ref")
 
-    tpl = get_template(paper, orientation)  # type: ignore[arg-type]
-    style = load_style_yaml()
+    templates_path = resolve_resource_path("config/paper_templates.yaml", explicit_base=settings.maps4u_config_dir)
+    style_schema_path = resolve_resource_path("schemas/style.schema.json", explicit_base=settings.maps4u_schema_dir)
+    tpl = get_template(paper, orientation, path=templates_path)  # type: ignore[arg-type]
+    style = load_style_by_ref(style_ref, style_dir=settings.maps4u_style_dir, schema_path=style_schema_path)
     job_dir = settings.artifact_dir / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
     def _stage_validating(_jid: str, _ctx: dict[str, Any]) -> dict[str, Any]:
-        return {"validated": True}
+        return {"validated": True, "style_ref": style.style_ref, "style_sha256": style.sha256}
 
     def _stage_queued(_jid: str, _ctx: dict[str, Any]) -> dict[str, Any]:
         return {"queued": True}
 
     def _stage_assessing(_jid: str, _ctx: dict[str, Any]) -> dict[str, Any]:
-        res = assess_viability(geofence_geom, tpl)
+        res = assess_viability(
+            geofence_geom,
+            tpl,
+            min_font_override_mm=settings.maps4u_min_font_mm,
+        )
         return {"scale_denominator": res.scale_denominator, "assessment": res}
 
     def _stage_acquiring(_jid: str, _ctx: dict[str, Any]) -> dict[str, Any]:
@@ -72,8 +109,6 @@ def execute_job_pipeline(job_id: str, settings: Settings) -> dict[str, Any]:
             corr_path = Path(str(corrections_ref))
             if corr_path.is_file():
                 features, _warnings = apply_corrections(features, corr_path)
-                from maps4u.core.ids import sha256_hex
-
                 corr_sha = sha256_hex(corr_path.read_bytes())
         return {"extract": extract, "features": features, "corrections_sha256": corr_sha}
 
@@ -104,6 +139,7 @@ def execute_job_pipeline(job_id: str, settings: Settings) -> dict[str, Any]:
             font_id=ctx["font_id"],
             area_name=area_name,
             edition=edition,
+            insets_enabled=settings.maps4u_insets_enabled,
         )
         return {"composed": composed}
 
@@ -126,6 +162,7 @@ def execute_job_pipeline(job_id: str, settings: Settings) -> dict[str, Any]:
             composed=ctx["composed"],
             features=ctx["features"],
             out_dir=job_dir,
+            min_font_threshold_mm=settings.maps4u_min_font_mm,
         )
         extract = ctx["extract"]
         manifest = write_manifest(
@@ -135,7 +172,7 @@ def execute_job_pipeline(job_id: str, settings: Settings) -> dict[str, Any]:
             snapshot_id=extract.snapshot_id,
             snapshot_sha256=extract.sha256,
             osm_base_date=extract.osm_base_date,
-            style_ref=style_ref,
+            style_ref=style.style_ref,
             style_sha256=style.sha256,
             corrections_sha256=ctx.get("corrections_sha256"),
             pdf_path=ctx["pdf_path"],
@@ -144,6 +181,19 @@ def execute_job_pipeline(job_id: str, settings: Settings) -> dict[str, Any]:
             qa_md_path=qa.report_md_path or (job_dir / "qa-report.md"),
             content_hash=ctx["content_hash"],
         )
+        _persist_qa_records(settings.db_path, job_id, qa, ctx["labels"].dropped)
+        if not qa.passed or qa.blocker_count > 0:
+            raise Maps4UError(
+                E_QA_FAILED,
+                f"QA preflight failed with {qa.blocker_count} blocker(s); job cannot enter proof_ready",
+                details={
+                    "job_id": job_id,
+                    "passed": qa.passed,
+                    "blocker_count": qa.blocker_count,
+                    "findings": [asdict(f) for f in qa.findings if f.severity == "blocker"],
+                },
+                status_code=422,
+            )
         return {"qa": qa, "manifest": manifest}
 
     def _stage_proof_ready(_jid: str, _ctx: dict[str, Any]) -> dict[str, Any]:
@@ -178,41 +228,19 @@ def execute_job_pipeline(job_id: str, settings: Settings) -> dict[str, Any]:
         conn.execute(
             """
             UPDATE jobs
-            SET scale_denominator = ?, min_font_mm = ?, thumbnail_path = ?, updated_at = ?
+            SET scale_denominator = ?, min_font_mm = ?, thumbnail_path = ?, style_ref = ?,
+                error_code = NULL, error_detail = NULL, updated_at = ?
             WHERE job_id = ?
             """,
             (
                 float(ctx["scale_denominator"]),
                 float(qa.min_font_mm_observed),
                 str(ctx["thumb_path"]),
+                style.style_ref,
                 now_iso,
                 job_id,
             ),
         )
-        conn.execute(
-            """
-            INSERT OR REPLACE INTO qa_results (
-                job_id, report_md_path, report_json_path, min_font_ok, overlaps, clipped, dropped_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                job_id,
-                str(qa.report_md_path),
-                str(qa.report_json_path),
-                1 if qa.min_font_ok else 0,
-                int(qa.overlaps),
-                int(qa.clipped),
-                json.dumps([d.text for d in ctx["labels"].dropped]),
-            ),
-        )
-        for f in qa.findings:
-            conn.execute(
-                """
-                INSERT INTO qa_findings (job_id, rule, severity, message, evidence_json)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (job_id, f.rule, f.severity, f.message, json.dumps(f.evidence, sort_keys=True)),
-            )
         conn.execute(
             """
             INSERT OR REPLACE INTO bundles (bundle_id, job_id, created_at, manifest_json, output_sha256)
