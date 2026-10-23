@@ -40,14 +40,25 @@ def _round_coords(coords: Any, precision: int = 7) -> Any:
     return coords
 
 
+def compute_geometry_sha256(canonical_json: str | bytes) -> str:
+    """Return the project-independent SHA-256 fingerprint of canonical GeoJSON bytes."""
+    raw = canonical_json.encode("utf-8") if isinstance(canonical_json, str) else canonical_json
+    return sha256_hex(raw)
+
+
 def validate_and_canonicalise_geofence(
     geojson_geom: dict[str, Any],
     *,
     max_vertices: int = MAX_VERTICES_PER_RING,
     max_area_km2: float = MAX_AREA_KM2,
     max_parts: int = MAX_MULTIPOLYGON_PARTS,
+    project_id: str | None = None,
 ) -> tuple[Polygon | MultiPolygon, str, str]:
-    """Validate GeoJSON Polygon/MultiPolygon per §6.2 and return (geom, canonical_json, revision_id)."""
+    """Validate GeoJSON Polygon/MultiPolygon per §6.2 and return (geom, canonical_json, revision_id).
+
+    When ``project_id`` is provided, ``revision_id`` is scoped to ``(project_id, geometry_sha256)``
+    so two projects with identical geometry never collide on primary key (BUG-007).
+    """
     gtype = geojson_geom.get("type")
     if gtype not in ("Polygon", "MultiPolygon"):
         raise Maps4UError(E_GEO_INVALID, f"Unsupported geometry type: {gtype!r}")
@@ -83,7 +94,7 @@ def validate_and_canonicalise_geofence(
                     E_GEO_INVALID,
                     f"Polygon ring has {len(ring.coords)} vertices; maximum allowed is {max_vertices}",
                 )
-            lons = [ float(c[0]) for c in ring.coords ]
+            lons = [float(c[0]) for c in ring.coords]
             if max(lons) - min(lons) > 180.0:
                 raise Maps4UError(E_GEO_UNSUPPORTED, "Antimeridian-crossing polygons are not supported")
 
@@ -105,5 +116,9 @@ def validate_and_canonicalise_geofence(
         "coordinates": _round_coords(geojson_geom["coordinates"], precision=7),
     }
     canon_bytes = canonical_json_bytes(canonical_dict)
-    revision_id = sha256_hex(canon_bytes)
+    geometry_sha256 = sha256_hex(canon_bytes)
+    if project_id:
+        revision_id = sha256_hex(f"{project_id}:{geometry_sha256}".encode())
+    else:
+        revision_id = geometry_sha256
     return geom, canon_bytes.decode("utf-8"), revision_id
