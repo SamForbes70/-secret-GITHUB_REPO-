@@ -13,6 +13,7 @@ import pandas as pd
 import yaml
 from shapely.geometry import LineString, Point
 
+from maps4u.core.config import resolve_resource_path
 from maps4u.core.errors import E_CORRECTIONS_INVALID, Maps4UError
 from maps4u.core.ids import sha256_hex
 from maps4u.geo.features import FeatureSet
@@ -27,7 +28,7 @@ FEATURE_TO_LAYER: dict[str, str] = {
     "landmark": "landmarks",
 }
 
-SCHEMA_PATH = Path(__file__).resolve().parents[3] / "schemas" / "corrections.schema.json"
+SCHEMA_PATH = resolve_resource_path("schemas/corrections.schema.json")
 
 
 @dataclass(frozen=True)
@@ -37,7 +38,9 @@ class CorrectionWarning:
     item: dict[str, Any]
 
 
-def _load_and_validate_corrections(corrections_path: Path) -> tuple[dict[str, Any], str]:
+def _load_and_validate_corrections(
+    corrections_path: Path, schema_path: Path = SCHEMA_PATH
+) -> tuple[dict[str, Any], str]:
     if not corrections_path.is_file():
         raise Maps4UError(E_CORRECTIONS_INVALID, f"Corrections file not found: {corrections_path}")
     raw_bytes = corrections_path.read_bytes()
@@ -53,7 +56,8 @@ def _load_and_validate_corrections(corrections_path: Path) -> tuple[dict[str, An
     if not isinstance(data, dict):
         raise Maps4UError(E_CORRECTIONS_INVALID, "Corrections root must be a YAML mapping")
 
-    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    resolved_schema = schema_path if schema_path.is_file() else resolve_resource_path("schemas/corrections.schema.json")
+    schema = json.loads(resolved_schema.read_text(encoding="utf-8"))
     try:
         jsonschema.validate(instance=data, schema=schema)
     except jsonschema.ValidationError as exc:
@@ -68,11 +72,61 @@ def _load_and_validate_corrections(corrections_path: Path) -> tuple[dict[str, An
 load_and_validate_corrections = _load_and_validate_corrections
 
 
+def resolve_safe_corrections_path(
+    corrections_ref: str,
+    data_dir: Path,
+    artifact_dir: Path,
+    conn: Any | None = None,
+) -> Path:
+    """Resolve a user-supplied corrections_ref safely, blocking arbitrary file access (BUG-003)."""
+    ref_str = corrections_ref.strip()
+    if not ref_str:
+        raise Maps4UError(E_CORRECTIONS_INVALID, "Empty corrections_ref", status_code=422)
+
+    if conn is not None:
+        row = conn.execute(
+            "SELECT path FROM corrections_files WHERE corrections_id = ?",
+            (ref_str,),
+        ).fetchone()
+        if row is not None:
+            ref_str = str(row["path"])
+
+    if ".." in Path(ref_str).parts:
+        raise Maps4UError(
+            E_CORRECTIONS_INVALID,
+            f"Invalid corrections_ref {corrections_ref!r}: path traversal is forbidden",
+            status_code=422,
+        )
+
+    candidate = Path(ref_str)
+    if not candidate.is_absolute():
+        candidate = (data_dir / candidate).resolve()
+    else:
+        candidate = candidate.resolve()
+
+    allowed_roots = (data_dir.resolve(), artifact_dir.resolve())
+    if not any(candidate == root or root in candidate.parents for root in allowed_roots):
+        raise Maps4UError(
+            E_CORRECTIONS_INVALID,
+            f"Forbidden corrections_ref {corrections_ref!r}: must reside within governed data_dir",
+            status_code=422,
+        )
+    if not candidate.is_file():
+        raise Maps4UError(
+            E_CORRECTIONS_INVALID,
+            f"Corrections file not found within governed storage: {corrections_ref!r}",
+            status_code=422,
+        )
+    return candidate
+
+
 def apply_corrections(
-    features: FeatureSet, corrections_path: Path
+    features: FeatureSet,
+    corrections_path: Path,
+    schema_path: Path = SCHEMA_PATH,
 ) -> tuple[FeatureSet, list[CorrectionWarning]]:
     """Apply corrections to a working copy of FeatureSet without mutating the source extract."""
-    payload, corr_id = _load_and_validate_corrections(corrections_path)
+    payload, corr_id = _load_and_validate_corrections(corrections_path, schema_path=schema_path)
     working = features.copy()
     warnings: list[CorrectionWarning] = []
 

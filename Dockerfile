@@ -23,7 +23,10 @@ FROM python:3.13-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    MAPS4U_DATA_DIR=/var/maps4u
+    MAPS4U_DATA_DIR=/var/maps4u \
+    MAPS4U_CONFIG_DIR=/app/config \
+    MAPS4U_SCHEMA_DIR=/app/schemas \
+    MAPS4U_STYLE_DIR=/app/styles
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
@@ -41,7 +44,6 @@ RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 COPY config ./config
 COPY schemas ./schemas
 COPY styles ./styles
-COPY src ./src
 COPY scripts ./scripts
 COPY docs ./docs
 

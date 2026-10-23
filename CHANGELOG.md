@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.0.1] - 2026-10-23 (Smoke Test, Defect Remediation & Regression Hardening)
+
+### Fixed
+- **`BUG-001` (P0 — Runtime Dependencies):** Declared `PyPDF2>=3.0.0`, `Pillow>=10.0.0`, `pycairo>=1.26.0`, `reportlab>=4.1.0`, and `pyproj>=3.6.0` as direct runtime dependencies in `pyproject.toml`.
+- **`BUG-002` (P0 — Installation-Safe Resource Paths):** Packaged `config/`, `schemas/`, and `styles/` inside `src/maps4u/resources/` and added `resolve_resource_path()` in `src/maps4u/core/config.py` so templates, style packs, and JSON schemas resolve cleanly from site-packages or explicit `MAPS4U_*_DIR` settings without relying on `parents[3]`.
+- **`BUG-003` (P0 — API Authentication & RBAC):** Enforced Bearer / `X-Operator-Token` / `X-Reviewer-Token` authentication (`hmac.compare_digest`), fail-closed `503 E_FORBIDDEN` in `prod`/`staging` when tokens are unconfigured, operator vs. reviewer role separation, and verified reviewer identity recording.
+- **`BUG-004` (P1 — Celery Worker Execution):** Connected `POST /api/jobs/{job_id}/run` to `run_job_task.apply_async` when `MAPS4U_QUEUE=celery` (`created -> validating -> queued`) and implemented full `execute_job_pipeline` execution inside `src/maps4u/worker/tasks.py`.
+- **`BUG-005` (P1 — Redis Environment Variable Alignment):** Standardised `MAPS4U_REDIS_URL` and `REDIS_URL` via `AliasChoices` in `Settings` (`src/maps4u/core/config.py`), `docker-compose.yml`, and `.env.example`.
+- **`BUG-006` (P1 — Duplicate Job Submission Protection):** Replaced `INSERT OR REPLACE INTO jobs` with conflict checking (`409 E_STATE_ILLEGAL`) so existing/finalized jobs can never be silently reset, and added `POST /api/jobs/{job_id}/reproduce` + `POST /api/jobs/{job_id}/retry`.
+- **`BUG-007` (P1 — Project-Scoped Geofence Revision IDs):** Scoped `revision_id` as `SHA-256(project_id:geometry_sha256)` while preserving `geometry_sha256` and replacing destructive `INSERT OR REPLACE` with `INSERT OR IGNORE`.
+- **`BUG-008` (P1 — QA Gate Enforcement on `proof_ready` & Approval):** Gated `proof_ready` and `finalized` transitions on a persisted `qa-report.json` (`passed == True`, `blocker_count == 0`) and structurally valid `%PDF-` 1-page `proof.pdf` matching `manifest.json`.
+- **`BUG-009` (P1 — Unexpected Pipeline Exception Handling):** Wrapped stage execution in `PipelineRunner` (`src/maps4u/worker/pipeline.py`) to catch arbitrary exceptions, transition jobs to `failed` with `E_PIPELINE_FAILED`, and permit controlled retries (`failed -> queued`).
+- **`BUG-010` & `BUG-011` (P2 — CI Workflow & Makefile):** Fixed `Makefile` tab recipe prefixes and `--factory` Uvicorn invocation (`maps4u.api.main:create_app`), and expanded CI workflow with wheel packaging, maintenance drills, and Docker Compose smoke checks.
+- **`BUG-012` (P2 — Settings Field Name Compatibility):** Enabled `populate_by_name=True` on `Settings` and updated `scripts/smoke_test.py`, `scripts/verify_determinism.py`, and `scripts/backup_restore_drill.py`.
+- **`BUG-013` (P2 — Style Resolution & Render Settings):** Added `load_style_by_ref()` with path-traversal protection and schema validation, rejected unknown styles with `422 E_STYLE_INVALID`, and wired `maps4u_min_font_mm` and `maps4u_insets_enabled` through composition and QA.
+- **`BUG-014` (P2 — Complete Browser Operator Journey):** Upgraded `src/maps4u/ui/static/{index.html,app.js,styles.css}` with auth token/identity inputs, error banner, job run/refresh/reproduce controls, artifact download/preview buttons, approve/reject sign-off, and YAML corrections submission.
+- **`BUG-015` (P2 — Concurrency, Cache Ageing & Tamper Detection):** Enforced `BoundedSemaphore(MAPS4U_OVERPASS_MAX_CONCURRENCY)` in `OverpassClient`, `MAPS4U_CACHE_MAX_AGE_DAYS` expiry in `lookup_cached_snapshot()`, and SHA-256 verification against `manifest.json` and `review_decisions.proof_sha256` on every artifact download.
+
+---
+
 ## [1.0.0-mvp] - 2026-10-22 (Stage 6 — Gate G6)
 
 ### Added

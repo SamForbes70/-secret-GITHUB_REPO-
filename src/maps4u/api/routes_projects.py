@@ -1,4 +1,4 @@
-"""Projects and immutable geofence revisions endpoints (§6.2 & §7.1)."""
+"""Projects and immutable geofence revisions endpoints (§6.2 & §7.1, hardened for BUG-003, BUG-007)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, status
 
-from maps4u.api.deps import get_settings
+from maps4u.api.deps import AuthPrincipal, get_settings, require_authenticated, require_operator
 from maps4u.core.config import Settings
 from maps4u.core.db import db_session
 from maps4u.core.errors import E_NOT_FOUND, Maps4UError
@@ -20,7 +20,7 @@ from maps4u.core.schemas import (
     ProjectCreateRequest,
     ProjectResponse,
 )
-from maps4u.geo.crs import validate_and_canonicalise_geofence
+from maps4u.geo.crs import compute_geometry_sha256, validate_and_canonicalise_geofence
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -29,6 +29,7 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 def create_project(
     req: ProjectCreateRequest,
     settings: Settings = Depends(get_settings),
+    _principal: AuthPrincipal = Depends(require_operator),
 ) -> ProjectResponse:
     now = datetime.now(UTC).isoformat()
     project_id = make_project_id(req.area_name, now)
@@ -51,7 +52,10 @@ def create_project(
 
 
 @router.get("", response_model=list[ProjectResponse])
-def list_projects(settings: Settings = Depends(get_settings)) -> list[ProjectResponse]:
+def list_projects(
+    settings: Settings = Depends(get_settings),
+    _principal: AuthPrincipal = Depends(require_authenticated),
+) -> list[ProjectResponse]:
     with db_session(settings.db_path) as conn:
         rows = conn.execute("SELECT * FROM map_projects ORDER BY created_at DESC").fetchall()
     return [
@@ -70,6 +74,7 @@ def list_projects(settings: Settings = Depends(get_settings)) -> list[ProjectRes
 def get_project(
     project_id: str,
     settings: Settings = Depends(get_settings),
+    _principal: AuthPrincipal = Depends(require_authenticated),
 ) -> ProjectResponse:
     with db_session(settings.db_path) as conn:
         proj = conn.execute(
@@ -89,9 +94,11 @@ def get_project(
 
     curr_geo: dict[str, Any] | None = None
     if rev is not None:
+        geom_str = str(rev["geometry_json"])
         curr_geo = {
             "revision_id": str(rev["revision_id"]),
-            "geometry": json.loads(str(rev["geometry_json"])),
+            "geometry_sha256": compute_geometry_sha256(geom_str),
+            "geometry": json.loads(geom_str),
             "created_at": str(rev["created_at"]),
             "created_by": rev["created_by"],
         }
@@ -116,11 +123,16 @@ def create_geofence_revision(
     project_id: str,
     req: GeofenceRevisionCreateRequest,
     settings: Settings = Depends(get_settings),
+    principal: AuthPrincipal = Depends(require_operator),
 ) -> GeofenceRevisionResponse:
     _, canon_json, revision_id = validate_and_canonicalise_geofence(
-        {"type": req.type, "coordinates": req.coordinates}
+        {"type": req.type, "coordinates": req.coordinates},
+        project_id=project_id,
     )
+    geom_sha = compute_geometry_sha256(canon_json)
     now = datetime.now(UTC).isoformat()
+    actor = principal.identity if principal.authenticated else (req.created_by or "operator")
+
     with db_session(settings.db_path) as conn:
         proj = conn.execute(
             "SELECT project_id FROM map_projects WHERE project_id = ?", (project_id,)
@@ -132,24 +144,45 @@ def create_geofence_revision(
             "UPDATE geofence_revisions SET is_current = 0 WHERE project_id = ?",
             (project_id,),
         )
-        conn.execute(
-            """
-            INSERT OR REPLACE INTO geofence_revisions (
-                revision_id, project_id, geometry_json, created_at, created_by, is_current
-            ) VALUES (?, ?, ?, ?, ?, 1)
-            """,
-            (revision_id, project_id, canon_json, now, req.created_by),
-        )
+        existing = conn.execute(
+            "SELECT revision_id, created_at, created_by FROM geofence_revisions WHERE revision_id = ? AND project_id = ?",
+            (revision_id, project_id),
+        ).fetchone()
+        if existing is None:
+            conn.execute(
+                """
+                INSERT INTO geofence_revisions (
+                    revision_id, project_id, geometry_json, created_at, created_by, is_current
+                ) VALUES (?, ?, ?, ?, ?, 1)
+                """,
+                (revision_id, project_id, canon_json, now, actor),
+            )
+            created_at = now
+            created_by = actor
+        else:
+            conn.execute(
+                "UPDATE geofence_revisions SET is_current = 1 WHERE revision_id = ? AND project_id = ?",
+                (revision_id, project_id),
+            )
+            created_at = str(existing["created_at"])
+            created_by = existing["created_by"]
+
     append_audit_jsonl(
         settings.maps4u_data_dir,
-        {"event": "geofence_revision_saved", "project_id": project_id, "revision_id": revision_id},
+        {
+            "event": "geofence_revision_saved",
+            "project_id": project_id,
+            "revision_id": revision_id,
+            "geometry_sha256": geom_sha,
+        },
     )
     return GeofenceRevisionResponse(
         revision_id=revision_id,
+        geometry_sha256=geom_sha,
         project_id=project_id,
         is_current=True,
-        created_at=now,
-        created_by=req.created_by,
+        created_at=created_at,
+        created_by=created_by,
         geometry=json.loads(canon_json),
     )
 
@@ -161,6 +194,7 @@ def create_geofence_revision(
 def list_geofence_revisions(
     project_id: str,
     settings: Settings = Depends(get_settings),
+    _principal: AuthPrincipal = Depends(require_authenticated),
 ) -> list[GeofenceRevisionResponse]:
     with db_session(settings.db_path) as conn:
         proj = conn.execute(
@@ -183,6 +217,7 @@ def list_geofence_revisions(
     return [
         GeofenceRevisionResponse(
             revision_id=str(r["revision_id"]),
+            geometry_sha256=compute_geometry_sha256(str(r["geometry_json"])),
             project_id=str(r["project_id"]),
             is_current=bool(r["is_current"]),
             created_at=str(r["created_at"]),

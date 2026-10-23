@@ -1,8 +1,9 @@
-"""GeoPackage snapshot storage and SQLite provenance persistence (§5.3 & §5.8)."""
+"""GeoPackage snapshot storage and SQLite provenance persistence with cache ageing & integrity checks (§5.3, §5.8, BUG-015)."""
 
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import geopandas as gpd
@@ -71,7 +72,27 @@ def record_snapshot_in_db(db_path: Path, extract: OsmExtract) -> None:
         )
 
 
-def lookup_cached_snapshot(db_path: Path, cache_dir: Path, snapshot_id: str, query: str) -> OsmExtract | None:
+def _is_snapshot_expired(fetched_at_iso: str, max_age_days: int | None) -> bool:
+    if max_age_days is None or max_age_days == 0:
+        return False
+    if max_age_days < 0:
+        return True
+    try:
+        dt = datetime.fromisoformat(fetched_at_iso)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+        return (datetime.now(UTC) - dt) > timedelta(days=int(max_age_days))
+    except Exception:
+        return True
+
+
+def lookup_cached_snapshot(
+    db_path: Path,
+    cache_dir: Path,
+    snapshot_id: str,
+    query: str,
+    max_age_days: int | None = None,
+) -> OsmExtract | None:
     gpkg_path = cache_dir / f"{snapshot_id}.gpkg"
     raw_path = cache_dir / f"{snapshot_id}.raw.json"
     if not gpkg_path.is_file() or not raw_path.is_file():
@@ -83,6 +104,13 @@ def lookup_cached_snapshot(db_path: Path, cache_dir: Path, snapshot_id: str, que
         ).fetchone()
         if row is None:
             return None
+        fetched_at = str(row["fetched_at"])
+        if _is_snapshot_expired(fetched_at, max_age_days):
+            return None
+        expected_sha = str(row["sha256"])
+        actual_sha = sha256_hex(raw_path.read_bytes())
+        if actual_sha != expected_sha:
+            return None
         return OsmExtract(
             snapshot_id=snapshot_id,
             bbox_str=str(row["bbox"]),
@@ -90,9 +118,9 @@ def lookup_cached_snapshot(db_path: Path, cache_dir: Path, snapshot_id: str, que
             gpkg_path=gpkg_path,
             query=query,
             source_url=str(row["source_url"]),
-            source_ts=str(row["fetched_at"]),
+            source_ts=fetched_at,
             osm_base_date=row["osm_base_date"],
-            sha256=str(row["sha256"]),
+            sha256=expected_sha,
             feature_counts=json.loads(row["feature_counts_json"] or "{}"),
             cache_hit=True,
         )

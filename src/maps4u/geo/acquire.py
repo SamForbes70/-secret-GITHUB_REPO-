@@ -1,4 +1,4 @@
-"""OSM acquisition and caching orchestration (§6.4 & §7.2)."""
+"""OSM acquisition and caching orchestration with cache TTL and concurrency enforcement (§6.4, §7.2, BUG-015)."""
 
 from __future__ import annotations
 
@@ -23,14 +23,24 @@ def get_or_fetch(bbox: BBox, classes: list[str], settings: Settings) -> OsmExtra
     """Fetch or return cached GeoPackage snapshot for bbox and feature classes."""
     settings.ensure_dirs()
     norm_bbox = bbox.normalized(6)
-    query = build_overpass_query(norm_bbox, classes)
+    query = build_overpass_query(norm_bbox, classes, timeout=settings.maps4u_overpass_timeout_s)
     snapshot_id = compute_snapshot_id(norm_bbox, query)
 
-    cached = lookup_cached_snapshot(settings.db_path, settings.cache_dir, snapshot_id, query)
+    cached = lookup_cached_snapshot(
+        settings.db_path,
+        settings.cache_dir,
+        snapshot_id,
+        query,
+        max_age_days=settings.maps4u_cache_max_age_days,
+    )
     if cached is not None:
         return cached
 
-    client = OverpassClient(endpoint_url=settings.maps4u_overpass_url)
+    client = OverpassClient(
+        endpoint_url=settings.maps4u_overpass_url,
+        timeout_s=settings.maps4u_overpass_timeout_s,
+        max_concurrency=settings.maps4u_overpass_max_concurrency,
+    )
     raw_bytes = client.fetch_raw(query)
 
     raw_path = settings.cache_dir / f"{snapshot_id}.raw.json"

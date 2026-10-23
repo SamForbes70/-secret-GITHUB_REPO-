@@ -1,0 +1,7 @@
+version: 1
+format: json
+level: INFO
+redacted_keys:
+  - token
+  - authorization
+  - operator_token

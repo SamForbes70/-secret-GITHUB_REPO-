@@ -8,17 +8,17 @@ from typing import Any
 
 from shapely.geometry import shape
 
-from maps4u.core.config import Settings
+from maps4u.core.config import Settings, resolve_resource_path
 from maps4u.core.db import db_session
 from maps4u.core.errors import E_NOT_FOUND, Maps4UError
 from maps4u.core.ids import canonical_json_bytes, sha256_hex
 from maps4u.geo.cache import load_features_from_gpkg
-from maps4u.geo.corrections import apply_corrections
+from maps4u.geo.corrections import apply_corrections, resolve_safe_corrections_path
 from maps4u.labels.engine import place_labels
 from maps4u.layout.furniture import compose_furniture
 from maps4u.layout.templates import get_template
 from maps4u.render.cairo_canvas import DEFAULT_TTF_PATH, CairoCanvas, render_png_thumbnail
-from maps4u.render.style_engine import load_style_yaml, style_plan
+from maps4u.render.style_engine import load_style_by_ref, style_plan
 
 
 def write_manifest(
@@ -96,6 +96,7 @@ def reproduce(
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     snapshot_id = str(manifest["provenance"]["snapshot_id"])
+    style_ref = str(manifest["provenance"].get("style_ref") or settings.maps4u_default_style)
 
     with db_session(settings.db_path) as conn:
         j_row = conn.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
@@ -115,12 +116,19 @@ def reproduce(
 
     features = load_features_from_gpkg(Path(str(s_row["gpkg_path"])))
     if corrections_ref:
-        corr_path = Path(str(corrections_ref))
-        if corr_path.is_file():
-            features, _ = apply_corrections(features, corr_path)
+        with db_session(settings.db_path) as corr_conn:
+            corr_path = resolve_safe_corrections_path(
+                str(corrections_ref),
+                data_dir=settings.maps4u_data_dir,
+                artifact_dir=settings.artifact_dir,
+                conn=corr_conn,
+            )
+        features, _ = apply_corrections(features, corr_path)
 
-    tpl = get_template(paper, orientation)  # type: ignore[arg-type]
-    style = load_style_yaml()
+    templates_path = resolve_resource_path("config/paper_templates.yaml", explicit_base=settings.maps4u_config_dir)
+    style_schema_path = resolve_resource_path("schemas/style.schema.json", explicit_base=settings.maps4u_schema_dir)
+    tpl = get_template(paper, orientation, path=templates_path)  # type: ignore[arg-type]
+    style = load_style_by_ref(style_ref, style_dir=settings.maps4u_style_dir, schema_path=style_schema_path)
     plan = style_plan(features, geofence_geom, tpl, style, scale_denominator=scale_denominator)
 
     canvas = CairoCanvas()
@@ -139,6 +147,7 @@ def reproduce(
         font_id=fid,
         area_name=area_name,
         edition=edition,
+        insets_enabled=settings.maps4u_insets_enabled,
     )
 
     repro_pdf = out_dir / "proof.pdf"

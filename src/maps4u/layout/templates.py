@@ -8,10 +8,11 @@ from typing import Any, cast
 
 import yaml
 
+from maps4u.core.config import resolve_resource_path
 from maps4u.core.errors import E_STYLE_INVALID, Maps4UError
 from maps4u.core.models import Orientation, PaperSize
 
-DEFAULT_TEMPLATES_PATH = Path(__file__).resolve().parents[3] / "config" / "paper_templates.yaml"
+DEFAULT_TEMPLATES_PATH = resolve_resource_path("config/paper_templates.yaml")
 
 
 @dataclass(frozen=True)

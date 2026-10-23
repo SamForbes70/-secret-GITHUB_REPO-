@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Maps4U Job Specification",
+  "type": "object",
+  "required": ["project_id", "geofence_revision", "paper", "orientation"],
+  "properties": {
+    "project_id": {"type": "string", "minLength": 1},
+    "geofence_revision": {"type": "string", "minLength": 1},
+    "paper": {"type": "string", "enum": ["A3", "A4", "A5"]},
+    "orientation": {"type": "string", "enum": ["landscape", "portrait"]},
+    "edition": {"type": "string"},
+    "style_ref": {"type": "string"},
+    "corrections_ref": {"type": ["string", "null"]}
+  }
+}

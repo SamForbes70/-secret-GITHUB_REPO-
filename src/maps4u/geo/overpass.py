@@ -1,7 +1,8 @@
-"""Overpass QL builder and client with retry/backoff ladder and offline fixture support."""
+"""Overpass QL builder and client with retry/backoff ladder, concurrency guard, and offline fixture support (ADR-5, BUG-015)."""
 
 from __future__ import annotations
 
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -21,6 +22,19 @@ CLASS_CLAUSES: dict[str, list[str]] = {
     "places": ['node["place"~"^(suburb|locality|town|hamlet)$"]', 'node["tourism"]', 'node["natural"~"^(peak|cape)$"]'],
     "landmarks": ['node["man_made"~"^(tower|lighthouse)$"]', 'node["historic"]'],
 }
+
+_SEMAPHORE_LOCK = threading.Lock()
+_SEMAPHORES: dict[int, threading.BoundedSemaphore] = {}
+
+
+def _get_concurrency_semaphore(max_concurrency: int) -> threading.BoundedSemaphore:
+    limit = max(1, int(max_concurrency))
+    with _SEMAPHORE_LOCK:
+        sem = _SEMAPHORES.get(limit)
+        if sem is None:
+            sem = threading.BoundedSemaphore(limit)
+            _SEMAPHORES[limit] = sem
+        return sem
 
 
 def build_overpass_query(
@@ -42,15 +56,16 @@ def build_overpass_query(
 def _default_http_transport(
     url: str,
     query: str,
+    timeout_s: float = 120.0,
 ) -> bytes:
-    with httpx.Client(timeout=120.0) as client:
+    with httpx.Client(timeout=timeout_s) as client:
         resp = client.post(url, data={"data": query})
         resp.raise_for_status()
         return resp.content
 
 
 class OverpassClient:
-    """Overpass client supporting file:// fixtures and 3-attempt backoff ladder (ADR-5)."""
+    """Overpass client supporting file:// fixtures, bounded concurrency, and 3-attempt backoff ladder (ADR-5, BUG-015)."""
 
     def __init__(
         self,
@@ -58,11 +73,20 @@ class OverpassClient:
         retry_backoff: tuple[float, ...] = (10.0, 30.0, 90.0),
         transport: Callable[[str, str], bytes] | None = None,
         sleep_fn: Callable[[float], None] = time.sleep,
+        timeout_s: int = 120,
+        max_concurrency: int = 1,
     ) -> None:
         self.endpoint_url = endpoint_url
         self.retry_backoff = retry_backoff
-        self.transport = transport or _default_http_transport
+        self.timeout_s = max(1, int(timeout_s))
+        self.max_concurrency = max(1, int(max_concurrency))
+        self._custom_transport = transport
         self.sleep_fn = sleep_fn
+
+    def _invoke_transport(self, query: str) -> bytes:
+        if self._custom_transport is not None:
+            return self._custom_transport(self.endpoint_url, query)
+        return _default_http_transport(self.endpoint_url, query, timeout_s=float(self.timeout_s))
 
     def fetch_raw(
         self,
@@ -77,11 +101,13 @@ class OverpassClient:
                 )
             return fixture_path.read_bytes()
 
+        sem = _get_concurrency_semaphore(self.max_concurrency)
         max_attempts = len(self.retry_backoff)
         last_err: Exception | None = None
         for attempt in range(max_attempts):
             try:
-                return self.transport(self.endpoint_url, query)
+                with sem:
+                    return self._invoke_transport(query)
             except Exception as exc:
                 last_err = exc
                 if attempt + 1 < max_attempts:
@@ -92,6 +118,7 @@ class OverpassClient:
             details={
                 "endpoint": self.endpoint_url,
                 "attempts": max_attempts,
+                "max_concurrency": self.max_concurrency,
             },
             status_code=503,
         )

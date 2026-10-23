@@ -36,6 +36,7 @@ class GeofenceRevisionResponse(BaseModel):
     created_at: str
     created_by: str | None = None
     geometry: dict[str, Any] | None = None
+    geometry_sha256: str | None = None
 
 
 class ViabilityRequest(BaseModel):
