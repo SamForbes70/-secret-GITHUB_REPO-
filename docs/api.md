@@ -1,4 +1,4 @@
-# Maps4U HTTP API Reference (`v1.0.0-mvp`)
+# Maps4U HTTP API Reference (`v1.0.2`)
 
 All HTTP endpoints are served by the FastAPI application (`maps4u.api.main:app` / `create_app`). Domain errors return structured JSON envelopes via `Maps4UError`.
 
@@ -231,4 +231,7 @@ Validates `yaml_content` against `schemas/corrections.schema.json`, persists the
 ```
 
 ### `POST /api/jobs/{job_id}/retry`
-Transitions a `failed` job back to `queued` so it can be re-executed.
+Increments `retry_count`, records a `job.retry_requested` audit event with previous failure diagnostics, transitions a `failed` job back to `queued`, and immediately executes (`inline` mode) or enqueues `run_job_task` with bounded exponential backoff (`celery` mode).
+
+### `POST /api/jobs/{job_id}/reproduce`
+Re-executes the render pipeline in an isolated temporary directory using the job's frozen `RenderSpec`, content-addressed `.gpkg` snapshot, and archived `frozen_inputs/` (`style.yaml`, `paper_templates.yaml`, `corrections.yaml`), verifying that all input and output SHA-256 digests match `manifest.json` (`409 E_STORAGE` on input drift or tamper).

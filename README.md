@@ -1,9 +1,9 @@
-# Maps4U Street Map System (`maps4u-maps` v1.0.0-mvp)
+# Maps4U Street Map System (`maps4u-maps` v1.0.2)
 
-![Release](https://img.shields.io/badge/release-v1.0.0--mvp-blue)
+![Release](https://img.shields.io/badge/release-v1.0.2-blue)
 ![Python](https://img.shields.io/badge/python-3.12%2B%20%7C%203.13-3776AB)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111%2B-009688)
-![Tests](https://img.shields.io/badge/tests-61%2F61%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-94%2F94%20passing-brightgreen)
 ![Determinism](https://img.shields.io/badge/PDF%20Determinism-SHA--256%20Verified-success)
 ![Map Data](https://img.shields.io/badge/Data-%C2%A9%20OpenStreetMap%20ODbL-7EBC6F)
 
@@ -120,8 +120,11 @@ You only need **one** of the two methods below. **Option A (Docker)** is the eas
 1. **Prerequisite:** Install and open [Docker Desktop](https://www.docker.com/products/docker-desktop/) so the Docker whale icon is running.
 2. **Start Maps4U:** In your terminal, copy and paste this command and press **Enter**:
    ```bash
+   export MAPS4U_OPERATOR_TOKEN="local-operator-secret-token-2026"
+   export MAPS4U_REVIEWER_TOKEN="local-reviewer-secret-token-2026"
    docker compose up --build
    ```
+   *(On Windows PowerShell: `$env:MAPS4U_OPERATOR_TOKEN="local-operator-secret-token-2026"; $env:MAPS4U_REVIEWER_TOKEN="local-reviewer-secret-token-2026"; docker compose up --build`)*
 3. **What happens next:**
    - The first time you run this, Docker will download Python and the mapping libraries (takes about 1–3 minutes).
    - Once ready, you will see a line saying:
@@ -151,9 +154,9 @@ You only need **one** of the two methods below. **Option A (Docker)** is the eas
      ```
 3. **Start the Web Server:**
    ```bash
-   MAPS4U_QUEUE=inline uvicorn maps4u.api.main:app --host 127.0.0.1 --port 8080
+   MAPS4U_QUEUE=inline uvicorn maps4u.api.main:create_app --factory --host 127.0.0.1 --port 8080
    ```
-   *(On Windows PowerShell, run `$env:MAPS4U_QUEUE="inline"; uvicorn maps4u.api.main:app --host 127.0.0.1 --port 8080`)*
+   *(On Windows PowerShell, run `$env:MAPS4U_QUEUE="inline"; uvicorn maps4u.api.main:create_app --factory --host 127.0.0.1 --port 8080`)*
 4. **Open the App:** Open your web browser and go to:
    **`http://127.0.0.1:8080`**
 
@@ -189,7 +192,7 @@ Want to verify that everything on your computer works without even using the int
 pytest -q
 ```
 
-You should see `61 passed` — confirming that map acquisition, styling, label placement, PDF generation, QA checks, and backups all work identically on your machine.
+You should see `94 passed` — confirming that map acquisition, styling, label placement, PDF generation, QA checks, security controls, and backups all work identically on your machine.
 
 ---
 
@@ -379,6 +382,11 @@ All runtime settings are loaded via `maps4u.core.config.Settings` (environment v
 | `MAPS4U_QUEUE` | `inline` | Execution mode: `inline` (synchronous) or `celery` (Redis worker) |
 | `MAPS4U_REDIS_URL` | `redis://localhost:6379/0` | Redis broker/backend URL when `MAPS4U_QUEUE=celery` |
 | `MAPS4U_RENDER_DPI` | `300` | Raster thumbnail resolution (`DPI`) |
+| `MAPS4U_ENV` | `local` | Environment profile (`local`, `test`, `staging`, `prod`) |
+| `MAPS4U_OPERATOR_TOKEN` | *(required in `prod`/`staging`)* | Operator Bearer token (`>= 16` chars, distinct from reviewer token) |
+| `MAPS4U_REVIEWER_TOKEN` | *(required in `prod`/`staging`)* | Reviewer Bearer token for `/approve` & `/reject` (`>= 16` chars) |
+| `MAPS4U_OPERATOR_IDENTITY` | `operator` | Immutable server-bound operator principal recorded in audit logs |
+| `MAPS4U_REVIEWER_IDENTITY` | `reviewer` | Immutable server-bound reviewer principal recorded in `review_decisions` |
 
 ---
 
@@ -387,7 +395,7 @@ All runtime settings are loaded via `maps4u.core.config.Settings` (environment v
 All automated tests run 100% offline using recorded Overpass fixtures (`tests/fixtures/overpass/mcy_sample.json`):
 
 ```bash
-# Run the full 61-test suite (unit, property-based, API, integration, 3-pilot acceptance, UAT)
+# Run the full 94-test suite (unit, property-based, API, integration, 3-pilot acceptance, v1.0.1 & v1.0.2 hardening)
 make test
 
 # Run with line coverage report

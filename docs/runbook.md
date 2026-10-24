@@ -1,4 +1,4 @@
-# Maps4U Operator Runbook (`v1.0.0-mvp`)
+# Maps4U Operator Runbook (`v1.0.2`)
 
 This runbook covers day-to-day operation of the Maps4U Street Map System, from service startup and geofence viability checks through proof generation, QA review, client YAML corrections, approval locking, and reproducibility verification.
 
@@ -18,7 +18,7 @@ curl -fsS http://127.0.0.1:8000/readyz
 ```bash
 make run
 # Or explicitly:
-MAPS4U_QUEUE=inline uvicorn maps4u.api.main:app --host 127.0.0.1 --port 8080
+MAPS4U_QUEUE=inline uvicorn maps4u.api.main:create_app --factory --host 127.0.0.1 --port 8080
 ```
 
 --- 

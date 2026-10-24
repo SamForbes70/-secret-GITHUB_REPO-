@@ -1,4 +1,4 @@
-# Maps4U System Architecture (`v1.0.0-mvp`)
+# Maps4U System Architecture (`v1.0.2`)
 
 ## 1. Architectural Overview
 

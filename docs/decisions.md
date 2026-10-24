@@ -1,9 +1,9 @@
-# Maps4U Owner Decision Register (`v1.0.0-mvp`)
+# Maps4U Owner Decision Register (`v1.0.2`)
 
-**System version:** `1.0.0` (`v1.0.0-mvp` — Stages 1–6 Complete)
+**System version:** `1.0.2` (`v1.0.2` — Stages 1–6 Complete + Production Hardening)
 **Last updated:** 2026-10-23
 
-| ID | Decision Item | Implemented Position (`v1.0.0-mvp`) | Owner | Status | Gate |
+| ID | Decision Item | Implemented Position (`v1.0.2`) | Owner | Status | Gate |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **OD-1 / Q-1** | MCY reference PDF & style baseline | Implemented `styles/mcy/v1/style.yaml` derived from Maroochydore (`MCY`) reference sheet; schema-validated with zero hardcoded styling in Python. | David / Sam | **Implemented & Verified** | Gate G3 |
 | **OD-2 / Q-2** | Pilot validation areas (3–5) | Verified end-to-end across **Maroochydore (`A4-landscape`)**, **Noosa (`A3-landscape`)**, and **Bribie Island / Sandstone Point (`A4-portrait`)** with 0 blockers and 0 overlaps. | David | **Implemented & Verified** | Gate G5 |

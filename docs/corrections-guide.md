@@ -1,4 +1,4 @@
-# Maps4U Client Corrections Guide (`v1.0.0-mvp`)
+# Maps4U Client Corrections Guide (`v1.0.2`)
 
 Client map corrections are stored in version-controlled YAML files validated against `schemas/corrections.schema.json` and applied non-destructively in memory (`src/maps4u/geo/corrections.py`) on top of the immutable OpenStreetMap GeoPackage (`.gpkg`) snapshot.
 

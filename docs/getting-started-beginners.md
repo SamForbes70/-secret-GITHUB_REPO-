@@ -1,4 +1,4 @@
-# Complete Beginner's Guide to Running Maps4U (`v1.0.0-mvp`)
+# Complete Beginner's Guide to Running Maps4U (`v1.0.2`)
 
 Welcome! If you have just downloaded or cloned the **Maps4U Street Map System** from GitHub and have never run a Python or Docker project before, this guide was written specifically for you. It assumes **zero prior knowledge** of command lines, servers, or cartography.
 
@@ -60,7 +60,9 @@ You have **two ways** to run Maps4U. Pick **Path 1 (Docker)** if you want a one-
 2. Open **Docker Desktop** and wait about 15 seconds until the bottom-left status bar says **Engine running**.
 3. In your terminal window (from Step 2), type:
    ```bash
-   docker compose up --build
+   export MAPS4U_OPERATOR_TOKEN="local-operator-secret-token-2026"
+export MAPS4U_REVIEWER_TOKEN="local-reviewer-secret-token-2026"
+docker compose up --build
    ```
 4. **Wait 1–3 minutes** the first time while Docker downloads Python and the mapping tools. When you see:
    ```text
@@ -85,7 +87,7 @@ You have **two ways** to run Maps4U. Pick **Path 1 (Docker)** if you want a one-
    pip install --upgrade pip
    pip install -e ".[dev]"
    cp .env.example .env
-   MAPS4U_QUEUE=inline uvicorn maps4u.api.main:app --host 127.0.0.1 --port 8080
+   MAPS4U_QUEUE=inline uvicorn maps4u.api.main:create_app --factory --host 127.0.0.1 --port 8080
    ```
 
    **Windows (PowerShell):**
@@ -131,7 +133,9 @@ Once the **Maps4U Operator Console** is open in your browser:
 
 | Problem | Why It Happens | Easy Fix |
 | :--- | :--- | :--- |
-| **`Cannot connect to the Docker daemon`** | Docker Desktop isn't open yet. | Open the **Docker Desktop** app and wait until it says *Engine running*, then run `docker compose up --build` again. |
+| **`Cannot connect to the Docker daemon`** | Docker Desktop isn't open yet. | Open the **Docker Desktop** app and wait until it says *Engine running*, then run `export MAPS4U_OPERATOR_TOKEN="local-operator-secret-token-2026"
+export MAPS4U_REVIEWER_TOKEN="local-reviewer-secret-token-2026"
+docker compose up --build` again. |
 | **`Port 8000 (or 8080) is already in use`** | Another window is already running Maps4U. | Check if `http://localhost:8000` is already open in your browser, or change `--port 8080` to `--port 8081`. |
 | **`Viability Blocked (MIN_FONT_MM)`** | The area you drew on the map is too large to fit on the selected paper size with readable street names (`>= 1.5 mm`). | Either choose a larger paper size (**`A3`** instead of `A4`/`A5`) or draw a tighter polygon around a smaller neighborhood. |
 | **How do I stop the program?** | You finished making maps. | Click inside the terminal window and press **`Ctrl + C`** (or run `docker compose down`). |
