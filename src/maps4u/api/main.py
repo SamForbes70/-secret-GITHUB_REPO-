@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from maps4u import __version__
+from maps4u.api.deps import validate_production_credentials
 from maps4u.api.routes_jobs import router as jobs_router
 from maps4u.api.routes_projects import router as projects_router
 from maps4u.api.routes_styles import router as styles_router
@@ -24,8 +25,14 @@ from maps4u.core.logging import configure_logging
 STATIC_UI_DIR = Path(__file__).resolve().parents[1] / "ui" / "static"
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, *, validate_startup: bool = False) -> FastAPI:
     cfg = settings or Settings()
+    if (
+        validate_startup
+        or cfg.maps4u_strict_startup
+        or (settings is None and cfg.maps4u_env in ("prod", "staging"))
+    ):
+        validate_production_credentials(cfg, require_reviewer_token=True)
     cfg.ensure_dirs()
     configure_logging(cfg.maps4u_log_level)
     run_migrations(cfg.db_path)
