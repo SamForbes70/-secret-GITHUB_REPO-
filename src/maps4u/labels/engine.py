@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -164,10 +165,20 @@ def place_labels(
     # Collect raw label features with deterministic ordering
     candidates_raw: list[dict[str, Any]] = []
 
+    def _clean_name(raw_val: Any) -> str:
+        if raw_val is None:
+            return ""
+        if isinstance(raw_val, float) and math.isnan(raw_val):
+            return ""
+        s = str(raw_val).strip()
+        if s.lower() in ("", "nan", "none", "<na>"):
+            return ""
+        return s
+
     # 1. Places -> suburb
     if not features.places.empty:
         for _, row in features.places.sort_values(by="osm_id").iterrows():
-            name = str(row.get("name") or "").strip()
+            name = _clean_name(row.get("name"))
             if not name:
                 continue
             g_utm = shapely_transform(transformer.transform, row.geometry)
@@ -188,7 +199,7 @@ def place_labels(
     # 2. Landmarks -> landmark
     if not features.landmarks.empty:
         for _, row in features.landmarks.sort_values(by="osm_id").iterrows():
-            name = str(row.get("name") or "").strip()
+            name = _clean_name(row.get("name"))
             if not name:
                 continue
             g_utm = shapely_transform(transformer.transform, row.geometry)
@@ -212,7 +223,7 @@ def place_labels(
         if gdf.empty:
             continue
         for _, row in gdf.sort_values(by="osm_id").iterrows():
-            name = str(row.get("name") or "").strip()
+            name = _clean_name(row.get("name"))
             if not name:
                 continue
             g_utm = shapely_transform(transformer.transform, row.geometry).intersection(clip_poly)
@@ -233,7 +244,7 @@ def place_labels(
     # 4. Roads -> arterial, collector, local, service with repeats along long lines
     if not features.roads.empty:
         for _, row in features.roads.sort_values(by="osm_id").iterrows():
-            name = str(row.get("name") or "").strip()
+            name = _clean_name(row.get("name"))
             if not name:
                 continue
             hwy = str(row.get("highway") or row.get("maps4u_class") or "residential")

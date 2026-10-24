@@ -58,7 +58,8 @@ def _default_http_transport(
     query: str,
     timeout_s: float = 120.0,
 ) -> bytes:
-    with httpx.Client(timeout=timeout_s) as client:
+    headers = {"User-Agent": "Maps4U-StreetMapSystem/1.0.2 (+https://github.com/SamForbes70)"}
+    with httpx.Client(timeout=timeout_s, headers=headers) as client:
         resp = client.post(url, data={"data": query})
         resp.raise_for_status()
         return resp.content

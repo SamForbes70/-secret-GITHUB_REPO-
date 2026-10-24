@@ -3,7 +3,7 @@
 ![Release](https://img.shields.io/badge/release-v1.0.2-blue)
 ![Python](https://img.shields.io/badge/python-3.12%2B%20%7C%203.13-3776AB)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111%2B-009688)
-![Tests](https://img.shields.io/badge/tests-94%2F94%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-95%2F95%20passing-brightgreen)
 ![Determinism](https://img.shields.io/badge/PDF%20Determinism-SHA--256%20Verified-success)
 ![Map Data](https://img.shields.io/badge/Data-%C2%A9%20OpenStreetMap%20ODbL-7EBC6F)
 
@@ -192,7 +192,7 @@ Want to verify that everything on your computer works without even using the int
 pytest -q
 ```
 
-You should see `94 passed` — confirming that map acquisition, styling, label placement, PDF generation, QA checks, security controls, and backups all work identically on your machine.
+You should see `95 passed` — confirming that map acquisition, styling, label placement, PDF generation, QA checks, security controls, and backups all work identically on your machine.
 
 ---
 
@@ -395,7 +395,7 @@ All runtime settings are loaded via `maps4u.core.config.Settings` (environment v
 All automated tests run 100% offline using recorded Overpass fixtures (`tests/fixtures/overpass/mcy_sample.json`):
 
 ```bash
-# Run the full 94-test suite (unit, property-based, API, integration, 3-pilot acceptance, v1.0.1 & v1.0.2 hardening)
+# Run the full 95-test suite (unit, property-based, API, integration, 3-pilot acceptance, v1.0.1 & v1.0.2 hardening)
 make test
 
 # Run with line coverage report

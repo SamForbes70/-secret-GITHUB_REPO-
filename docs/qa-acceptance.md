@@ -32,3 +32,15 @@ Every job must pass all 7 automated QA gates before operator approval:
 - **Cryptographic Approval Lock:** `POST /api/jobs/{job_id}/approve` records `proof_sha256` in `review_decisions` and locks the job in `finalized`.
 - **Mandatory Rejection Comment:** `POST /api/jobs/{job_id}/reject` enforces a non-blank reviewer comment (`422 E_CORRECTIONS_INVALID` on blank input).
 - **Non-Destructive Client Corrections:** `POST /api/jobs/{job_id}/corrections` validates YAML against `schemas/corrections.schema.json` and spawns a linked child job without mutating the parent job or `.gpkg` snapshot.
+
+---
+
+## 4. Live OpenStreetMap Overpass 3-Area Pilot Verification (`Stage 5.T3` / `Stage 6.T3`)
+
+Executed via `python -m scripts.run_live_pilots` against `https://overpass-api.de/api/interpreter` in `prod` mode with content-addressed `.gpkg` caching and `POST /api/jobs/{job_id}/reproduce` verification:
+
+| Pilot Area | Format | Scale | Overpass Payload | Extracted Features (`roads` / `parks` / `water`) | Snapshot SHA-256 (`snapshot_id`) | Locked `proof.pdf` SHA-256 | `reproduce()` |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Maroochydore** | `A4-landscape` | `1:12,500` | `1,043,737 B` | `1,309` roads, `16` parks, `11` water, `3` coastline, `8` places, `1` landmark | `bfcbfdc8a483c041...` | `bb45105dcd066ac9...` | **MATCHED (`true`)** |
+| **Noosa Heads** | `A3-landscape` | `1:7,500` | `386,763 B` | `413` roads, `13` parks, `5` water, `2` coastline, `11` places, `1` landmark | `9073792a0d192388...` | `c89d130a7512ae29...` | **MATCHED (`true`)** |
+| **Bribie Island — Sandstone Point** | `A4-portrait` | `1:10,000` | `368,274 B` | `334` roads, `8` parks, `1` water, `2` coastline | `3c3d52bb699c48bd...` | `51c943dc19f16843...` | **MATCHED (`true`)** |

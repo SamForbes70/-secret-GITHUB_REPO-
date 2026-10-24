@@ -106,3 +106,23 @@ def test_s4_t2_and_t4_compose_furniture_all_templates_and_insets(
     )
     assert composed_inset.inset_enabled is True
     assert composed_inset.page_count == 2
+
+
+def test_nan_names_are_filtered_from_labels(test_settings: Settings) -> None:
+    bbox = BBox(min_lon=153.085, min_lat=-26.660, max_lon=153.105, max_lat=-26.645)
+    classes = ["roads", "water", "water_lines", "parks", "boundaries", "coastline", "places", "landmarks"]
+    extract = get_or_fetch(bbox=bbox, classes=classes, settings=test_settings)
+    fset = load_features_from_gpkg(extract.gpkg_path)
+    fset.roads.loc[fset.roads.index[0], "name"] = float("nan")
+    if not fset.parks.empty:
+        fset.parks.loc[fset.parks.index[0], "name"] = float("nan")
+    geofence = box(153.085, -26.660, 153.105, -26.645)
+    tpl = get_template("A4", "landscape")
+    style = load_style_yaml()
+    plan = style_plan(fset, geofence, tpl, style, scale_denominator=10000.0)
+    canvas = CairoCanvas()
+    canvas.set_page(tpl.page_mm, bleed_mm=tpl.bleed_mm)
+    fid = canvas.embedded_font(DEFAULT_TTF_PATH)
+    res = place_labels(fset, geofence, plan, tpl, style, canvas, fid, seed=0)
+    assert all(p.text.lower() != "nan" for p in res.placed)
+    assert all(d.get("text", "").lower() != "nan" for d in res.dropped)
