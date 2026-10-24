@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.0.2] - 2026-10-24 (Production Hardening, Immutable Provenance & Queue Resilience)
+
+### Fixed & Hardened
+- **`SEC-001` (Critical — Production Credentials):** Removed hardcoded default operator tokens (`maps4u-prod-operator-token`) from `docker-compose.yml` in favour of mandatory `${MAPS4U_OPERATOR_TOKEN:?...}` and `${MAPS4U_REVIEWER_TOKEN:?...}` injection. Added `validate_production_credentials()` in `src/maps4u/api/deps.py` and factory startup enforcement in `src/maps4u/api/main.py` to refuse startup in `prod`/`staging` if tokens are missing, `< 16` characters, match known default/placeholder values, or are identical.
+- **`SEC-002` (High — Verified Reviewer Identities & Separation of Duties):** Removed trust in `X-Operator-Identity` and request-body `reviewer` strings. Bound principal identities strictly to server-configured `MAPS4U_OPERATOR_IDENTITY` and `MAPS4U_REVIEWER_IDENTITY` associated with each authenticated token, requiring a distinct `MAPS4U_REVIEWER_TOKEN` for production approvals/rejections.
+- **`SEC-003` (High — Removal of URL Query-String Token Authentication):** Removed `?token=` query-string authentication from `src/maps4u/api/deps.py` and updated `src/maps4u/ui/static/app.js` to fetch artifacts via `Authorization: Bearer` headers (`Blob` object URLs) so credentials never appear in URLs, browser history, or access logs.
+- **`DATA-001` (Critical — Immutable Content-Addressed OSM Provenance):** Separated cache lookup identity (`compute_cache_lookup_key(bbox, query)` stored in `<lookup_key>.latest.json`) from content-addressed snapshot identity (`compute_snapshot_id(bbox, query, raw_sha256)`). Switched `osm_snapshots` persistence to `INSERT OR IGNORE` so cache refreshes never overwrite historical `.raw.json` or `.gpkg` files referenced by finalized jobs.
+- **`DATA-002` (High — Frozen Reproducibility Inputs):** Archived exact copies of `style.yaml`, `paper_templates.yaml`, and `corrections.yaml` into `artifacts/<job_id>/frozen_inputs/` alongside `gpkg_sha256`, `templates_sha256`, and `render_config` in `manifest.json`, and updated `reproduce()` to verify all input SHA-256 digests (`409 E_STORAGE` on mismatch).
+- **`DATA-003` (High — GeoPackage Corruption Detection & Auto-Recovery):** Removed silent empty-layer fallback in `read_geopackage_snapshot()`. Corrupted or missing `.gpkg` layers now automatically rebuild from the SHA-256-verified immutable `.raw.json` snapshot when available, or fail deterministically with `422 E_STORAGE`.
+- **`QUEUE-001` (High — Atomic Job Claiming & Duplicate Dispatch Prevention):** Added `try_acquire_job_claim()` / `release_job_claim()` and SQLite atomic conditional state claiming (`WHERE job_id = ? AND status IN ('created', 'queued')`) to prevent duplicate dispatches or concurrent workers executing the same job (`409 E_STATE_ILLEGAL`).
+- **`QUEUE-002` (High — Working Retry Execution & Backoff):** Updated `POST /api/jobs/{job_id}/retry` to increment `retry_count`, record `job.retry_requested` audit events with previous failure context, and immediately execute (`inline`) or enqueue (`celery` with exponential backoff `countdown`).
+- **`QUEUE-003` (High — Accurate Celery Task Outcomes):** Updated `run_job_task` in `src/maps4u/worker/tasks.py` to distinguish transient errors (`E_OVERPASS_UNAVAILABLE`, `E_OVERPASS_RATE_LIMIT`, `ConnectionError`, `TimeoutError` -> `self.retry(exc=..., countdown=...)`) from terminal errors (`Maps4UError` re-raised so Celery records `FAILURE`).
+- **`QA-001` (Medium — Removal of Runtime QA Shortcuts):** Removed the `raw_bytes.strip() == b"ok"` test-stub shortcut from production `verify_governed_qa_and_pdf()` in `src/maps4u/core/state.py`.
+- **`OPS-001` (Medium — Deep Operational Readiness Probe):** Upgraded `GET /readyz` in `src/maps4u/api/routes_system.py` to verify SQLite schema readiness and, when `MAPS4U_QUEUE=celery`, Redis broker `PING` and active Celery worker `control.inspect().ping()`, returning `503` when any required dependency is unhealthy.
+
+---
+
 ## [1.0.1] - 2026-10-23 (Smoke Test, Defect Remediation & Regression Hardening)
 
 ### Fixed

@@ -9,7 +9,7 @@ import pytest
 from maps4u.core.config import Settings
 from maps4u.core.db import db_session, run_migrations
 from maps4u.core.errors import E_GOVERNED_OUTPUT_MISSING, E_STATE_ILLEGAL, Maps4UError
-from maps4u.core.state import GOVERNED_OUTPUT_FILES, transition_job_state
+from maps4u.core.state import transition_job_state
 from maps4u.render.canvas import GlyphPlacement, PathOps, RecordingCanvas, Stroke
 from maps4u.worker.pipeline import PipelineRunner
 
@@ -79,11 +79,30 @@ def test_state_machine_transitions_and_governed_outputs(test_settings: Settings)
             )
         assert gov_exc.value.code == E_GOVERNED_OUTPUT_MISSING
 
-        # Create governed output files and verify proof_ready succeeds
+        # Create governed output files with valid QA and 1-page PDF and verify proof_ready succeeds
+        import json
+
+        from PyPDF2 import PdfWriter
+
+        from maps4u.core.ids import sha256_hex
+
         job_dir = test_settings.artifact_dir / job_id
         job_dir.mkdir(parents=True, exist_ok=True)
-        for fname in GOVERNED_OUTPUT_FILES:
-            (job_dir / fname).write_text("ok", encoding="utf-8")
+        writer = PdfWriter()
+        writer.add_blank_page(width=595, height=842)
+        with (job_dir / "proof.pdf").open("wb") as fp:
+            writer.write(fp)
+        pdf_sha = sha256_hex((job_dir / "proof.pdf").read_bytes())
+        (job_dir / "thumb.png").write_bytes(b"\x89PNG\r\n\x1a\nok")
+        (job_dir / "qa-report.md").write_text("# QA Report\nPassed\n", encoding="utf-8")
+        (job_dir / "qa-report.json").write_text(
+            json.dumps({"job_id": job_id, "passed": True, "blocker_count": 0, "findings": []}),
+            encoding="utf-8",
+        )
+        (job_dir / "manifest.json").write_text(
+            json.dumps({"job_id": job_id, "outputs": {"proof_pdf": {"sha256": pdf_sha}}}),
+            encoding="utf-8",
+        )
 
         new_state = transition_job_state(
             conn,

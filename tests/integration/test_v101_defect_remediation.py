@@ -149,6 +149,7 @@ def test_bug003_authentication_and_rbac_enforced(tmp_path: Path) -> None:
         MAPS4U_ENV="prod",
         MAPS4U_OPERATOR_TOKEN=op_token,
         MAPS4U_REVIEWER_TOKEN=rev_token,
+        MAPS4U_REVIEWER_IDENTITY="claire.reviewer",
     )
     client = TestClient(create_app(settings))
 
