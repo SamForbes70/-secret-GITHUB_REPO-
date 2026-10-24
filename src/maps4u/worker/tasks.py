@@ -1,15 +1,20 @@
-"""Celery application and task definitions (BUG-004, BUG-005)."""
+"""Celery task definitions with bounded retry and accurate failure outcomes (QUEUE-002, QUEUE-003)."""
 
 from __future__ import annotations
 
+import json
+from datetime import UTC, datetime
 from typing import Any
 
 from celery import Celery
 
 from maps4u.core.config import Settings
 from maps4u.core.db import db_session
-from maps4u.core.errors import E_NOT_FOUND, Maps4UError
+from maps4u.core.errors import E_OSM_TRANSIENT, E_OVERPASS_UNAVAILABLE, Maps4UError
+from maps4u.core.logging import append_audit_jsonl
 from maps4u.worker.executor import execute_job_pipeline
+
+TRANSIENT_ERROR_CODES: frozenset[str] = frozenset({E_OSM_TRANSIENT, E_OVERPASS_UNAVAILABLE})
 
 
 def make_celery(settings: Settings | None = None) -> Celery:
@@ -29,13 +34,13 @@ def make_celery(settings: Settings | None = None) -> Celery:
 celery_app = make_celery()
 
 
-@celery_app.task(bind=True, name="maps4u.run_job", max_retries=2, default_retry_delay=5)
+@celery_app.task(bind=True, name="maps4u.run_job", max_retries=2, default_retry_delay=2)
 def run_job_task(
     self: Any,
     job_id: str,
     settings_overrides: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Execute the governed map production pipeline for job_id inside the Celery worker."""
+    """Execute the governed pipeline in Celery; raise on failure for accurate task state (QUEUE-003)."""
     cfg = Settings(**(settings_overrides or {}))
     celery_app.conf.broker_url = cfg.redis_url
     celery_app.conf.result_backend = cfg.redis_url
@@ -48,15 +53,76 @@ def run_job_task(
             **result,
         }
     except Maps4UError as err:
-        if err.code == E_NOT_FOUND:
-            raise
+        now_iso = datetime.now(UTC).isoformat()
+        current_retries = int(getattr(self.request, "retries", 0) or 0)
+        max_retries = int(getattr(self, "max_retries", 2) or 2)
+
+        if err.code in TRANSIENT_ERROR_CODES and current_retries < max_retries:
+            backoff_s = min(60, 2 ** (current_retries + 1))
+            with db_session(cfg.db_path) as conn:
+                conn.execute(
+                    "UPDATE jobs SET retry_count = COALESCE(retry_count, 0) + 1, updated_at = ? WHERE job_id = ?",
+                    (now_iso, job_id),
+                )
+                conn.execute(
+                    "INSERT INTO job_events (job_id, ts, stage, event, payload_json) VALUES (?, ?, ?, ?, ?)",
+                    (
+                        job_id,
+                        now_iso,
+                        "queued",
+                        "celery_task_retry_scheduled",
+                        json.dumps(
+                            {
+                                "attempt": current_retries + 1,
+                                "max_retries": max_retries,
+                                "backoff_s": backoff_s,
+                                "error_code": err.code,
+                                "error_detail": err.message,
+                            },
+                            sort_keys=True,
+                        ),
+                    ),
+                )
+            append_audit_jsonl(
+                cfg.maps4u_data_dir,
+                {
+                    "ts": now_iso,
+                    "event": "celery_task_retry_scheduled",
+                    "job_id": job_id,
+                    "attempt": current_retries + 1,
+                    "backoff_s": backoff_s,
+                    "error_code": err.code,
+                },
+            )
+            raise self.retry(exc=err, countdown=backoff_s) from err
+
         with db_session(cfg.db_path) as conn:
-            row = conn.execute("SELECT status, error_code, error_detail FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
-            status = str(row["status"]) if row else "failed"
-        return {
-            "job_id": job_id,
-            "queue_mode": cfg.maps4u_queue,
-            "status": status,
-            "error_code": err.code,
-            "error_detail": err.message,
-        }
+            conn.execute(
+                "INSERT INTO job_events (job_id, ts, stage, event, payload_json) VALUES (?, ?, ?, ?, ?)",
+                (
+                    job_id,
+                    now_iso,
+                    "failed",
+                    "celery_task_failed",
+                    json.dumps(
+                        {
+                            "error_code": err.code,
+                            "error_detail": err.message,
+                            "retries": current_retries,
+                        },
+                        sort_keys=True,
+                    ),
+                ),
+            )
+        append_audit_jsonl(
+            cfg.maps4u_data_dir,
+            {
+                "ts": now_iso,
+                "event": "celery_task_failed",
+                "job_id": job_id,
+                "error_code": err.code,
+                "error_detail": err.message,
+                "retries": current_retries,
+            },
+        )
+        raise
