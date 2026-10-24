@@ -90,6 +90,7 @@ class JobResponse(BaseModel):
     min_font_mm: float | None = None
     error_code: str | None = None
     error_detail: str | None = None
+    retry_count: int = 0
     created_at: str
     updated_at: str
 

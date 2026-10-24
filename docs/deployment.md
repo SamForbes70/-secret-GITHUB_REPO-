@@ -1,4 +1,24 @@
-# Maps4U Deployment, Operations & Backup Guide (`v1.0.0-mvp`)
+# Maps4U Deployment, Operations, Security & Backup Guide (`v1.0.2`)
+
+## 0. Production Secret Injection & Token Rotation (`SEC-001`, `SEC-002`, `SEC-003`)
+
+In `prod` and `staging` environments (`MAPS4U_ENV=prod` or `staging`), `docker-compose.yml` and the FastAPI application factory (`create_app()`) **refuse startup** unless deployment-specific credentials are provided via environment variables or an untracked `.env` file:
+
+```bash
+export MAPS4U_OPERATOR_TOKEN="$(openssl rand -hex 24)"
+export MAPS4U_REVIEWER_TOKEN="$(openssl rand -hex 24)"
+export MAPS4U_OPERATOR_IDENTITY="ops.production"
+export MAPS4U_REVIEWER_IDENTITY="qa.reviewer"
+docker compose up -d --build
+```
+
+- **Minimum Strength & Separation of Duties:** Both tokens must be at least **16 characters**, must not match any known placeholder/default token (`maps4u-prod-operator-token`, `change-me`, etc.), and must be distinct (`MAPS4U_OPERATOR_TOKEN != MAPS4U_REVIEWER_TOKEN`).
+- **Header-Only Authentication (`SEC-003`):** Tokens must be passed via `Authorization: Bearer <token>`, `X-Operator-Token`, or `X-Reviewer-Token` HTTP headers. Query-string `?token=` parameters are rejected (`401 E_UNAUTHORIZED`).
+- **Token Rotation Procedure:**
+  1. Generate new 48-hex-character secrets for `MAPS4U_OPERATOR_TOKEN` and/or `MAPS4U_REVIEWER_TOKEN` in your secret manager or `.env`.
+  2. Recreate the `api` and `worker` containers (`docker compose up -d api worker`).
+  3. Verify `/healthz` (`200`) and `/readyz` (`200`, `database: true`, `broker: true`, `worker: true`).
+  4. Existing approved jobs and `review_decisions` remain intact because historical sign-offs store the verified principal identity (`MAPS4U_REVIEWER_IDENTITY`) and `proof_sha256`.
 
 ## 1. Container Topology (`docker-compose.yml`)
 

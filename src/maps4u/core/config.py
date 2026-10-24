@@ -108,6 +108,9 @@ class Settings(BaseSettings):
     maps4u_insets_enabled: bool = Field(default=True, alias="MAPS4U_INSETS_ENABLED")
     maps4u_operator_token: str = Field(default="", alias="MAPS4U_OPERATOR_TOKEN")
     maps4u_reviewer_token: str = Field(default="", alias="MAPS4U_REVIEWER_TOKEN")
+    maps4u_operator_identity: str = Field(default="operator", alias="MAPS4U_OPERATOR_IDENTITY")
+    maps4u_reviewer_identity: str = Field(default="reviewer", alias="MAPS4U_REVIEWER_IDENTITY")
+    maps4u_strict_startup: bool = Field(default=False, alias="MAPS4U_STRICT_STARTUP")
     redis_url: str = Field(
         default="redis://localhost:6379/0",
         validation_alias=AliasChoices("MAPS4U_REDIS_URL", "REDIS_URL", "redis_url", "maps4u_redis_url"),

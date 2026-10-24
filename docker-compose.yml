@@ -21,8 +21,8 @@ services:
       REDIS_URL: ${MAPS4U_REDIS_URL:-redis://redis:6379/0}
       MAPS4U_QUEUE: celery
       MAPS4U_ENV: ${MAPS4U_ENV:-prod}
-      MAPS4U_OPERATOR_TOKEN: ${MAPS4U_OPERATOR_TOKEN:-maps4u-prod-operator-token}
-      MAPS4U_REVIEWER_TOKEN: ${MAPS4U_REVIEWER_TOKEN:-}
+      MAPS4U_OPERATOR_TOKEN: ${MAPS4U_OPERATOR_TOKEN:?MAPS4U_OPERATOR_TOKEN must be set to a unique >=16-char secret}
+      MAPS4U_REVIEWER_TOKEN: ${MAPS4U_REVIEWER_TOKEN:?MAPS4U_REVIEWER_TOKEN must be set to a distinct >=16-char secret}
     volumes:
       - maps4u_data:/var/maps4u
     depends_on:
@@ -47,8 +47,8 @@ services:
       REDIS_URL: ${MAPS4U_REDIS_URL:-redis://redis:6379/0}
       MAPS4U_QUEUE: celery
       MAPS4U_ENV: ${MAPS4U_ENV:-prod}
-      MAPS4U_OPERATOR_TOKEN: ${MAPS4U_OPERATOR_TOKEN:-maps4u-prod-operator-token}
-      MAPS4U_REVIEWER_TOKEN: ${MAPS4U_REVIEWER_TOKEN:-}
+      MAPS4U_OPERATOR_TOKEN: ${MAPS4U_OPERATOR_TOKEN:?MAPS4U_OPERATOR_TOKEN must be set to a unique >=16-char secret}
+      MAPS4U_REVIEWER_TOKEN: ${MAPS4U_REVIEWER_TOKEN:?MAPS4U_REVIEWER_TOKEN must be set to a distinct >=16-char secret}
     volumes:
       - maps4u_data:/var/maps4u
     depends_on:

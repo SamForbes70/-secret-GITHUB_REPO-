@@ -57,6 +57,8 @@ class CorrectionsSubmitRequest(BaseModel):
 
 
 def _row_to_job_response(row: Any) -> JobResponse:
+    keys = set(row.keys()) if hasattr(row, "keys") else set()
+    retry_cnt = int(row["retry_count"] or 0) if "retry_count" in keys else 0
     return JobResponse(
         job_id=str(row["job_id"]),
         project_id=row["project_id"],
@@ -71,6 +73,7 @@ def _row_to_job_response(row: Any) -> JobResponse:
         min_font_mm=row["min_font_mm"],
         error_code=row["error_code"],
         error_detail=row["error_detail"],
+        retry_count=retry_cnt,
         created_at=str(row["created_at"]),
         updated_at=str(row["updated_at"]),
     )
@@ -362,21 +365,19 @@ def run_job_endpoint(
     settings: Settings = Depends(get_settings),
     _principal: AuthPrincipal = Depends(require_operator),
 ) -> JobResponse:
-    with db_session(settings.db_path) as conn:
-        row = conn.execute("SELECT status FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
-        if row is None:
-            raise Maps4UError(E_NOT_FOUND, f"Job {job_id!r} not found", status_code=404)
-        current_status = str(row["status"])
-        if current_status not in ("created", "queued", "failed"):
-            raise Maps4UError(
-                E_STATE_ILLEGAL,
-                f"Job {job_id!r} in state {current_status!r} cannot be dispatched for execution",
-                details={"job_id": job_id, "status": current_status},
-                status_code=409,
-            )
-
     if settings.maps4u_queue == "celery":
         with db_session(settings.db_path) as conn:
+            row = conn.execute("SELECT status FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
+            if row is None:
+                raise Maps4UError(E_NOT_FOUND, f"Job {job_id!r} not found", status_code=404)
+            current_status = str(row["status"])
+            if current_status not in ("created", "failed"):
+                raise Maps4UError(
+                    E_STATE_ILLEGAL,
+                    f"Job {job_id!r} in state {current_status!r} is already queued or active (duplicate dispatch blocked)",
+                    details={"job_id": job_id, "status": current_status},
+                    status_code=409,
+                )
             if current_status == "created":
                 transition_job_state(
                     conn,
@@ -397,6 +398,10 @@ def run_job_endpoint(
                     artifact_dir=settings.artifact_dir,
                 )
             elif current_status == "failed":
+                conn.execute(
+                    "UPDATE jobs SET retry_count = COALESCE(retry_count, 0) + 1 WHERE job_id = ?",
+                    (job_id,),
+                )
                 transition_job_state(
                     conn,
                     job_id=job_id,
@@ -413,6 +418,19 @@ def run_job_endpoint(
             kwargs={"settings_overrides": _serialize_settings(settings)},
         )
         return get_job(job_id, settings)
+
+    with db_session(settings.db_path) as conn:
+        row = conn.execute("SELECT status FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
+        if row is None:
+            raise Maps4UError(E_NOT_FOUND, f"Job {job_id!r} not found", status_code=404)
+        current_status = str(row["status"])
+        if current_status not in ("created", "queued", "failed"):
+            raise Maps4UError(
+                E_STATE_ILLEGAL,
+                f"Job {job_id!r} in state {current_status!r} cannot be dispatched for execution",
+                details={"job_id": job_id, "status": current_status},
+                status_code=409,
+            )
 
     execute_job_pipeline(job_id, settings)
     return get_job(job_id, settings)
@@ -476,11 +494,7 @@ def approve_job(
         raise Maps4UError(E_NOT_FOUND, f"Proof PDF for job {job_id!r} not found", status_code=404)
     proof_sha256 = sha256_hex(pdf_path.read_bytes())
     now_iso = datetime.now(UTC).isoformat()
-    effective_reviewer = (
-        principal.identity
-        if (principal.authenticated and principal.identity != principal.role)
-        else req.reviewer
-    )
+    effective_reviewer = principal.identity if principal.authenticated else req.reviewer
 
     with db_session(settings.db_path) as conn:
         transition_job_state(
@@ -533,11 +547,7 @@ def reject_job(
     pdf_path = settings.artifact_dir / job_id / "proof.pdf"
     proof_sha256 = sha256_hex(pdf_path.read_bytes()) if pdf_path.is_file() else ("0" * 64)
     now_iso = datetime.now(UTC).isoformat()
-    effective_reviewer = (
-        principal.identity
-        if (principal.authenticated and principal.identity != principal.role)
-        else req.reviewer
-    )
+    effective_reviewer = principal.identity if principal.authenticated else req.reviewer
 
     with db_session(settings.db_path) as conn:
         transition_job_state(
@@ -581,6 +591,15 @@ def retry_job(
     _principal: AuthPrincipal = Depends(require_operator),
 ) -> JobResponse:
     with db_session(settings.db_path) as conn:
+        row = conn.execute(
+            "SELECT status, error_code, error_detail, COALESCE(retry_count, 0) AS retry_count FROM jobs WHERE job_id = ?",
+            (job_id,),
+        ).fetchone()
+        if row is None:
+            raise Maps4UError(E_NOT_FOUND, f"Job {job_id!r} not found", status_code=404)
+        new_retry_count = int(row["retry_count"] or 0) + 1
+        prev_error_code = row["error_code"]
+        prev_error_detail = row["error_detail"]
         transition_job_state(
             conn,
             job_id=job_id,
@@ -589,7 +608,28 @@ def retry_job(
             event="job_retried",
             data_dir=settings.maps4u_data_dir,
             artifact_dir=settings.artifact_dir,
+            payload={
+                "retry_count": new_retry_count,
+                "previous_error_code": prev_error_code,
+                "previous_error_detail": prev_error_detail,
+                "queue_mode": settings.maps4u_queue,
+            },
         )
+        conn.execute(
+            "UPDATE jobs SET retry_count = ?, error_code = NULL, error_detail = NULL WHERE job_id = ?",
+            (new_retry_count, job_id),
+        )
+
+    if settings.maps4u_queue == "celery":
+        celery_app.conf.broker_url = settings.redis_url
+        celery_app.conf.result_backend = settings.redis_url
+        run_job_task.apply_async(
+            args=[job_id],
+            kwargs={"settings_overrides": _serialize_settings(settings)},
+        )
+        return get_job(job_id, settings)
+
+    execute_job_pipeline(job_id, settings)
     return get_job(job_id, settings)
 
 

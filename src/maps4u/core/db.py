@@ -109,5 +109,8 @@ def run_migrations(db_path: Path) -> list[int]:
                 (version, datetime.now(UTC).isoformat()),
             )
             applied_now.append(version)
+        cols = {str(r["name"]) for r in conn.execute("PRAGMA table_info(jobs)").fetchall()}
+        if "retry_count" not in cols:
+            conn.execute("ALTER TABLE jobs ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0")
         _repair_legacy_geofence_revisions(conn)
     return applied_now

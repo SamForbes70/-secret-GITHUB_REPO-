@@ -1,9 +1,10 @@
-"""Job lifecycle state machine (§6.1) with governed output and QA gate enforcement (BUG-008)."""
+"""Job lifecycle state machine (§6.1) with governed output, QA gate, and atomic claiming (BUG-008, QA-001, QUEUE-001)."""
 
 from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -38,7 +39,39 @@ LEGAL_TRANSITIONS: dict[str, set[str]] = {
     "failed": {"queued"},
 }
 
+ACTIVE_EXECUTION_STATES: frozenset[str] = frozenset(
+    {
+        "validating",
+        "assessing",
+        "acquiring",
+        "transforming",
+        "styling",
+        "labelling",
+        "composing",
+        "rendering",
+        "verifying",
+    }
+)
+
 GOVERNED_OUTPUT_FILES = ("proof.pdf", "thumb.png", "qa-report.md", "qa-report.json", "manifest.json")
+
+_CLAIM_GUARD = threading.Lock()
+_ACTIVE_CLAIMS: set[str] = set()
+
+
+def try_acquire_job_claim(job_id: str) -> bool:
+    """Atomically claim job_id in-process to prevent concurrent duplicate execution (QUEUE-001)."""
+    with _CLAIM_GUARD:
+        if job_id in _ACTIVE_CLAIMS:
+            return False
+        _ACTIVE_CLAIMS.add(job_id)
+        return True
+
+
+def release_job_claim(job_id: str) -> None:
+    """Release in-process execution claim for job_id."""
+    with _CLAIM_GUARD:
+        _ACTIVE_CLAIMS.discard(job_id)
 
 
 def verify_governed_outputs(artifact_dir: Path, job_id: str) -> list[str]:
@@ -53,7 +86,7 @@ def verify_governed_outputs(artifact_dir: Path, job_id: str) -> list[str]:
 
 
 def verify_governed_qa_and_pdf(artifact_dir: Path, job_id: str) -> dict[str, Any]:
-    """Validate qa-report.json, proof.pdf structure, and manifest.json hash alignment (BUG-008)."""
+    """Validate qa-report.json, proof.pdf structure, and manifest.json hash alignment (BUG-008, QA-001)."""
     job_dir = artifact_dir / job_id
     qa_path = job_dir / "qa-report.json"
     try:
@@ -161,9 +194,10 @@ def transition_job_state(
     payload: dict[str, Any] | None = None,
     error_code: str | None = None,
     error_detail: str | None = None,
-    enforce_qa: bool = False,
+    enforce_qa: bool = True,
 ) -> str:
-    """Transition job to target_state, enforcing state rules, governed outputs, and QA preflight gates."""
+    """Transition job to target_state, enforcing state rules, governed outputs, and QA preflight gates (QA-001)."""
+    _ = enforce_qa
     row = conn.execute("SELECT status FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
     if row is None:
         raise Maps4UError(E_NOT_FOUND, f"Job {job_id!r} not found", status_code=404)
@@ -193,21 +227,21 @@ def transition_job_state(
                 details={"job_id": job_id, "missing": missing},
                 status_code=409,
             )
-        job_dir = artifact_dir / job_id
-        is_unit_stub = (
-            not enforce_qa
-            and target_state == "proof_ready"
-            and (job_dir / "qa-report.json").read_bytes() == b"ok"
-            and (job_dir / "proof.pdf").read_bytes() == b"ok"
-        )
-        if not is_unit_stub:
-            verify_governed_qa_and_pdf(artifact_dir, job_id)
+        verify_governed_qa_and_pdf(artifact_dir, job_id)
 
     now = datetime.now(UTC).isoformat()
-    conn.execute(
-        "UPDATE jobs SET status = ?, error_code = ?, error_detail = ?, updated_at = ? WHERE job_id = ?",
-        (target_state, error_code, error_detail, now, job_id),
+    cur = conn.execute(
+        "UPDATE jobs SET status = ?, error_code = ?, error_detail = ?, updated_at = ? WHERE job_id = ? AND status = ?",
+        (target_state, error_code, error_detail, now, job_id, current_state),
     )
+    if cur.rowcount != 1:
+        raise Maps4UError(
+            E_STATE_ILLEGAL,
+            f"Concurrent state modification detected for job {job_id!r} (expected {current_state!r})",
+            details={"job_id": job_id, "expected_state": current_state, "target_state": target_state},
+            status_code=409,
+        )
+
     payload_str = json.dumps(payload or {}, sort_keys=True)
     conn.execute(
         "INSERT INTO job_events (job_id, ts, stage, event, payload_json) VALUES (?, ?, ?, ?, ?)",
