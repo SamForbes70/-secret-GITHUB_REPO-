@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -104,10 +105,10 @@ def verify_pdf_structure(
     pdf_path: Path,
     expected_size_mm: tuple[float, float],
 ) -> dict[str, Any]:
-    raw_bytes = pdf_path.read_bytes()
-    raw_str = raw_bytes.decode("latin-1", errors="ignore")
     reader = PdfReader(str(pdf_path))
     page_count = len(reader.pages)
+    if page_count < 1:
+        raise ValueError("PDF must contain a page")
     page = reader.pages[0]
     mbox = page.mediabox
     w_pt = float(mbox.width)
@@ -116,12 +117,45 @@ def verify_pdf_structure(
     exp_h_pt = expected_size_mm[1] * PT_PER_MM
     page_size_matches = abs(w_pt - exp_w_pt) <= 1.0 and abs(h_pt - exp_h_pt) <= 1.0
 
-    has_vector_paths = (" m\n" in raw_str or " l\n" in raw_str) and (
-        "\nS\n" in raw_str or "\nf\n" in raw_str or "\nB\n" in raw_str
+    content = page.get_contents()
+    stream = content.get_data().decode("latin-1", errors="replace") if content else ""
+    has_vector_paths = bool(
+        re.search(r"(?:^|\s)[ml](?=\s|$)", stream)
+        and re.search(r"(?:^|\s)[sSfFbB](?=\s|$)", stream)
     )
-    fonts_embedded = "/FontDescriptor" in raw_str and "/Subtype /TrueType" in raw_str
-    has_odbl_attribution = "OpenStreetMap" in raw_str and "ODbL" in raw_str
-    has_unexpected_raster = "/Subtype /Image" in raw_str
+
+    resources = page["/Resources"].get_object()
+    font_dict = resources.get("/Font")
+    fonts = font_dict.get_object() if font_dict is not None else {}
+    embedded_fonts = 0
+    for font_obj in fonts.values():
+        font = font_obj.get_object()
+        descriptors = []
+        if "/FontDescriptor" in font:
+            descriptors.append(font["/FontDescriptor"].get_object())
+        for descendant in font.get("/DescendantFonts", []):
+            descendant_font = descendant.get_object()
+            if "/FontDescriptor" in descendant_font:
+                descriptors.append(descendant_font["/FontDescriptor"].get_object())
+        for descriptor in descriptors:
+            for key in ("/FontFile2", "/FontFile3", "/FontFile"):
+                if key in descriptor and descriptor[key].get_object().get_data():
+                    embedded_fonts += 1
+                    break
+    fonts_embedded = embedded_fonts > 0
+
+    metadata = reader.metadata or {}
+    has_odbl_attribution = "OpenStreetMap" in (
+        str(metadata.get("/Subject", "")) + " " + stream
+    ) and "ODbL" in (str(metadata.get("/Subject", "")) + " " + stream)
+
+    xobjects = resources.get("/XObject")
+    has_unexpected_raster = bool(
+        xobjects and any(
+            obj.get_object().get("/Subtype") == "/Image"
+            for obj in xobjects.get_object().values()
+        )
+    )
 
     return {
         "page_count": page_count,
@@ -130,6 +164,7 @@ def verify_pdf_structure(
         "page_size_matches": page_size_matches,
         "has_vector_paths": has_vector_paths,
         "fonts_embedded": fonts_embedded,
+        "embedded_font_count": embedded_fonts,
         "has_odbl_attribution": has_odbl_attribution,
         "has_unexpected_raster": has_unexpected_raster,
     }
