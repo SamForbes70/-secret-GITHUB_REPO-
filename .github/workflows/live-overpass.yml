@@ -7,6 +7,8 @@ on:
       - fix/v1.0.5-audit-remediation
     paths:
       - .github/workflows/live-overpass.yml
+      - src/maps4u/render/cairo_canvas.py
+      - tests/integration/test_v105_remediation.py
 
 permissions:
   contents: read
@@ -61,6 +63,7 @@ jobs:
           assert hashlib.sha256(pdf.read_bytes()).hexdigest() == result["pdf_sha256"]
           doc = PdfReader(str(pdf))
           assert len(doc.pages) == 1
+          assert "/TrimBox" in doc.pages[0] and "/BleedBox" in doc.pages[0]
           raws = list((base / "var" / "osm_cache").glob("*.raw.json"))
           assert raws, "No live OSM snapshot was saved"
           raw = json.loads(raws[0].read_text())
@@ -80,7 +83,7 @@ jobs:
           PY
           pdffonts "$LIVE_DIR/exports/maroochydore-a4-landscape/proof.pdf" | tee "$LIVE_DIR/pdffonts.txt"
           awk 'NR>2 && $4 == "yes" {ok=1} END {exit !ok}' "$LIVE_DIR/pdffonts.txt"
-          pdfinfo "$LIVE_DIR/exports/maroochydore-a4-landscape/proof.pdf"
+          pdfinfo -box "$LIVE_DIR/exports/maroochydore-a4-landscape/proof.pdf"
       - name: Upload live proof and PNG for independent visual/physical print assessment
         if: always()
         uses: actions/upload-artifact@v4
