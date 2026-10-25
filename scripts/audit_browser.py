@@ -2,7 +2,9 @@
 """Audit-only real Chromium browser walk-through and negative interaction tests."""
 import json
 import re
-from playwright.sync_api import sync_playwright, expect
+from playwright.sync_api import expect, sync_playwright
+
+
 
 def run():
     issues = []
@@ -64,7 +66,8 @@ def run():
         page.screenshot(path="/tmp/maps4u-browser-audit.png", full_page=True)
         print("PASS: browser proof approval and finalised status",flush=True)
         browser.close()
-    for issue in issues: print("FINDING:",issue,flush=True)
+    for issue in issues:
+        print("FINDING:", issue, flush=True)
     assert not issues, f"Browser regressions: {issues}"
     print("PASS: no browser safety/correctness regressions",flush=True)
 
