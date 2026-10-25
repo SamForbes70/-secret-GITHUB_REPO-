@@ -56,6 +56,8 @@ def test_v105_pdf_contains_real_embedded_font_and_unicode(tmp_path: Path) -> Non
     assert checks["embedded_font_count"] >= 1
     assert checks["has_vector_paths"] is True
     reader = PdfReader(str(pdf_a))
+    assert "/TrimBox" in reader.pages[0]
+    assert "/BleedBox" in reader.pages[0]
     fonts = reader.pages[0]["/Resources"]["/Font"].get_object()
     descriptors = [
         font.get_object()["/FontDescriptor"].get_object()
