@@ -79,6 +79,11 @@ jobs:
           python -m uvicorn maps4u.api.main:create_app --factory --host 127.0.0.1 --port 8080 > /tmp/maps4u-audit-server.log 2>&1 &
           SERVER_PID=$!
           trap 'cat /tmp/maps4u-audit-server.log; kill $SERVER_PID || true' EXIT
+          for attempt in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8080/healthz; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/readyz
           python scripts/audit_browser.py
       - name: Upload browser screenshot
         uses: actions/upload-artifact@v4
