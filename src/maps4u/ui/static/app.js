@@ -9,6 +9,10 @@
     polygonLayer: null,
     vertexMarkers: [],
     map: null,
+    geometryVersion: 0,
+    savedGeometryVersion: null,
+    viabilityGeneration: 0,
+    viable: false,
   };
 
   const MCY_PRESET_RING = [
@@ -80,6 +84,36 @@
     };
   }
 
+  function updateJobSubmission() {
+    document.getElementById("btn-submit-job").disabled = !(
+      state.projectId &&
+      state.currentRevisionId &&
+      state.savedGeometryVersion === state.geometryVersion &&
+      state.viable
+    );
+  }
+
+  function invalidateGeometry() {
+    state.geometryVersion += 1;
+    state.viabilityGeneration += 1;
+    state.currentRevisionId = null;
+    state.savedGeometryVersion = null;
+    state.viable = false;
+    document.getElementById("btn-save-revision").disabled = true;
+    updateJobSubmission();
+  }
+
+  function appendJobLine(parent, entries) {
+    const row = document.createElement("div");
+    for (const [tagName, value, className] of entries) {
+      const node = document.createElement(tagName);
+      node.textContent = String(value ?? "");
+      if (className) node.className = className;
+      row.appendChild(node);
+    }
+    parent.appendChild(row);
+  }
+
   function updateJobUI(job) {
     const readout = document.getElementById("job-status-readout");
     const btnRun = document.getElementById("btn-run-job");
@@ -105,15 +139,28 @@
     state.currentJobId = job.job_id;
     state.currentJobStatus = job.status;
 
-    const errLine = job.error_code
-      ? `<div class="error-text"><strong>Error:</strong> [${job.error_code}] ${job.error_detail || ""}</div>`
-      : "";
-    readout.innerHTML = `
-      <div><strong>Job ID:</strong> <code>${job.job_id}</code></div>
-      <div><strong>Status:</strong> <span class="job-state job-state-${job.status}">${job.status}</span></div>
-      <div><strong>Style:</strong> ${job.style_ref} | <strong>Scale:</strong> ${job.scale_denominator ? "1:" + Math.round(job.scale_denominator) : "pending"}</div>
-      ${errLine}
-    `;
+    readout.replaceChildren();
+    appendJobLine(readout, [
+      ["strong", "Job ID: "],
+      ["code", job.job_id],
+    ]);
+    const safeStatus = String(job.status || "").replace(/[^a-z0-9_-]/gi, "");
+    appendJobLine(readout, [
+      ["strong", "Status: "],
+      ["span", job.status, "job-state job-state-" + safeStatus],
+    ]);
+    appendJobLine(readout, [
+      ["strong", "Style: "],
+      ["span", job.style_ref],
+      ["strong", " | Scale: "],
+      ["span", job.scale_denominator ? "1:" + Math.round(job.scale_denominator) : "pending"],
+    ]);
+    if (job.error_code) {
+      appendJobLine(readout, [
+        ["strong", "Error: "],
+        ["span", "[" + job.error_code + "] " + (job.error_detail || ""), "error-text"],
+      ]);
+    }
 
     btnRefresh.disabled = false;
     btnRun.disabled = !["created", "queued", "failed"].includes(job.status);
@@ -166,7 +213,11 @@
     const summary = document.getElementById("viability-summary");
     const msgList = document.getElementById("viability-messages");
     const btnSave = document.getElementById("btn-save-revision");
-    msgList.innerHTML = "";
+    const requestGeneration = ++state.viabilityGeneration;
+    state.viable = false;
+    btnSave.disabled = true;
+    updateJobSubmission();
+    msgList.replaceChildren();
 
     if (!geom) {
       badge.className = "badge badge-neutral";
@@ -187,6 +238,7 @@
     });
     if (!resp.ok) {
       const errMsg = await extractErrorMessage(resp);
+      if (requestGeneration !== state.viabilityGeneration) return;
       badge.className = "badge badge-block";
       badge.textContent = "Viability Error";
       summary.textContent = errMsg;
@@ -194,10 +246,12 @@
       showError(errMsg);
       return;
     }
-    showError(null);
     const data = await resp.json();
-
+    if (requestGeneration !== state.viabilityGeneration) return;
+    showError(null);
+    state.viable = !!data.viable;
     btnSave.disabled = !state.projectId || !data.viable;
+    updateJobSubmission();
     if (!data.viable) {
       badge.className = "badge badge-block";
       badge.textContent = `Blocked — 1:${Math.round(data.scale_denominator)}`;
@@ -229,9 +283,11 @@
   }
 
   function redrawPolygon() {
+    invalidateGeometry();
     if (!state.map) return;
     if (state.polygonLayer) {
       state.map.removeLayer(state.polygonLayer);
+      state.polygonLayer = null;
     }
     if (state.vertices.length >= 3) {
       state.polygonLayer = L.polygon(
@@ -303,6 +359,11 @@
       }
       const data = await resp.json();
       state.projectId = data.project_id;
+      invalidateGeometry();
+      state.currentJobId = null;
+      state.currentJobStatus = null;
+      updateJobUI(null);
+      document.getElementById("revisions-list").replaceChildren();
       document.getElementById("project-status").textContent = `Active Project: ${data.project_id}`;
       evaluateViability();
       refreshRevisions();
@@ -325,25 +386,34 @@
     document.getElementById("btn-save-revision").addEventListener("click", async () => {
       showError(null);
       const geom = currentGeoJSON();
-      if (!state.projectId || !geom) return;
-      const resp = await fetch(`/api/projects/${state.projectId}/geofence`, {
+      if (!state.projectId || !geom || !state.viable) return;
+      const geometryVersion = state.geometryVersion;
+      const projectId = state.projectId;
+      document.getElementById("btn-save-revision").disabled = true;
+      const resp = await fetch(`/api/projects/${projectId}/geofence`, {
         method: "POST",
         headers: getAuthHeaders(true),
         body: JSON.stringify(geom),
       });
       if (!resp.ok) {
         showError(await extractErrorMessage(resp));
+        if (geometryVersion === state.geometryVersion && projectId === state.projectId) {
+          document.getElementById("btn-save-revision").disabled = !state.viable;
+        }
         return;
       }
       const rev = await resp.json();
+      if (geometryVersion !== state.geometryVersion || projectId !== state.projectId) return;
       state.currentRevisionId = rev.revision_id;
-      document.getElementById("btn-submit-job").disabled = false;
+      state.savedGeometryVersion = geometryVersion;
+      updateJobSubmission();
       refreshRevisions();
     });
 
     document.getElementById("btn-submit-job").addEventListener("click", async () => {
       showError(null);
-      if (!state.projectId || !state.currentRevisionId) return;
+      if (!state.projectId || !state.currentRevisionId || !state.viable ||
+          state.savedGeometryVersion !== state.geometryVersion) return;
       const paper = document.getElementById("paper-select").value;
       const orientation = document.getElementById("orientation-select").value;
       const styleRef = document.getElementById("style-ref").value.trim() || "mcy/v1";
