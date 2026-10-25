@@ -9,6 +9,10 @@ from pathlib import Path
 from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont
+from reportlab.lib.colors import HexColor
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas as pdf_canvas
 
 from maps4u.core.ids import canonical_json_bytes, sha256_hex
 from maps4u.render.canvas import Fill, GlyphPlacement, PathOps, Stroke
@@ -214,6 +218,12 @@ class CairoCanvas:
         return ("\n".join(lines) + "\n").encode("latin-1")
 
     def save_pdf(self, path: Path) -> None:
+        """Write deterministic vector output with real embedded TrueType font programs.
+
+        ReportLab's invariant mode fixes document IDs and timestamps. TTFont
+        automatically subsets glyphs used by Unicode strings into a FontFile2
+        stream rather than merely declaring a /FontDescriptor.
+        """
         path.parent.mkdir(parents=True, exist_ok=True)
         if not self.fonts:
             self.embedded_font(DEFAULT_TTF_PATH)
@@ -223,88 +233,65 @@ class CairoCanvas:
             json.dumps(self.drawlog_dict(), indent=2, sort_keys=True), encoding="utf-8"
         )
 
-        w_pt = round(self.page_size_mm[0] * PT_PER_MM, 3)
-        h_pt = round(self.page_size_mm[1] * PT_PER_MM, 3)
-        bleed_pt = round(self.bleed_mm * PT_PER_MM, 3)
-        content_bytes = self._build_pdf_content_stream()
-
-        objects: list[bytes] = []
-
-        # Obj 1: Catalog
-        objects.append(b"<< /Type /Catalog /Pages 2 0 R >>")
-        # Obj 2: Pages
-        objects.append(b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
-
-        # Font objects start at Obj 6
-        font_entries: list[str] = []
-        font_objs: list[bytes] = []
-        next_obj_num = 6
-        for fid, finfo in sorted(self.fonts.items()):
-            base_name = finfo["name"].replace(" ", "-")
-            f_obj_num = next_obj_num
-            fd_obj_num = next_obj_num + 1
-            next_obj_num += 2
-            font_entries.append(f"/{fid} {f_obj_num} 0 R")
-            font_objs.append(
-                f"<< /Type /Font /Subtype /TrueType /BaseFont /ABCDEF+{base_name} "
-                f"/Encoding /WinAnsiEncoding /FontDescriptor {fd_obj_num} 0 R >>".encode("latin-1")
-            )
-            font_objs.append(
-                f"<< /Type /FontDescriptor /FontName /ABCDEF+{base_name} "
-                f"/Flags 32 /FontBBox [-100 -200 1000 900] /ItalicAngle 0 "
-                f"/Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 "
-                f"/FontSHA256 ({finfo['sha256']}) >>".encode("latin-1")
-            )
-
-        font_dict_str = " ".join(font_entries)
-        # Obj 3: Page
-        page_dict = (
-            f"<< /Type /Page /Parent 2 0 R "
-            f"/MediaBox [0 0 {w_pt:.3f} {h_pt:.3f}] "
-            f"/TrimBox [0 0 {w_pt:.3f} {h_pt:.3f}] "
-            f"/BleedBox [{-bleed_pt:.3f} {-bleed_pt:.3f} {w_pt + bleed_pt:.3f} {h_pt + bleed_pt:.3f}] "
-            f"/Resources << /Font << {font_dict_str} >> >> "
-            f"/Contents 4 0 R >>"
-        ).encode("latin-1")
-        objects.append(page_dict)
-
-        # Obj 4: Content stream
-        stream_obj = (
-            f"<< /Length {len(content_bytes)} >>\nstream\n".encode("latin-1")
-            + content_bytes
-            + b"endstream"
+        width_pt = self.page_size_mm[0] * PT_PER_MM
+        height_pt = self.page_size_mm[1] * PT_PER_MM
+        pdf = pdf_canvas.Canvas(
+            str(path),
+            pagesize=(width_pt, height_pt),
+            pageCompression=0,
+            invariant=1,
         )
-        objects.append(stream_obj)
+        pdf.setTitle("Maps4U Street Map Proof")
+        pdf.setAuthor("Maps4U")
+        pdf.setSubject("Map data OpenStreetMap contributors ODbL")
+        pdf.setCreator("Maps4U Deterministic Vector Renderer")
 
-        # Obj 5: Info dictionary with deterministic content hash & ODbL attribution
-        c_hash = self.content_hash()
-        info_obj = (
-            f"<< /Producer (Maps4U Vector PDF Engine v1) "
-            f"/Title (Maps4U Street Map Proof) "
-            f"/Attribution (Map data OpenStreetMap contributors ODbL) "
-            f"/ContentHash ({c_hash}) >>"
-        ).encode("latin-1")
-        objects.append(info_obj)
-        objects.extend(font_objs)
+        font_names: dict[str, str] = {}
+        for font_id, info in sorted(self.fonts.items()):
+            ttf_path = Path(str(info["path"]))
+            if not ttf_path.is_file():
+                raise FileNotFoundError(f"Required TrueType font missing: {ttf_path}")
+            stable_name = f"Maps4U-{info['digest12']}"
+            if stable_name not in pdfmetrics.getRegisteredFontNames():
+                pdfmetrics.registerFont(TTFont(stable_name, str(ttf_path)))
+            font_names[font_id] = stable_name
 
-        out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
-        offsets: list[int] = []
-        for idx, obj_bytes in enumerate(objects, start=1):
-            offsets.append(len(out))
-            out.extend(f"{idx} 0 obj\n".encode("latin-1"))
-            out.extend(obj_bytes)
-            out.extend(b"\nendobj\n")
+        for operations, stroke, fill in self._path_records:
+            if not operations.commands:
+                continue
+            pdf.saveState()
+            path_obj = pdf.beginPath()
+            for command, coords in operations.commands:
+                if command == "M" and len(coords) >= 2:
+                    path_obj.moveTo(coords[0] * PT_PER_MM, height_pt - coords[1] * PT_PER_MM)
+                elif command == "L" and len(coords) >= 2:
+                    path_obj.lineTo(coords[0] * PT_PER_MM, height_pt - coords[1] * PT_PER_MM)
+                elif command == "Z":
+                    path_obj.close()
+            if fill is not None:
+                pdf.setFillColor(HexColor(fill.color))
+            if stroke is not None:
+                pdf.setStrokeColor(HexColor(stroke.color))
+                pdf.setLineWidth(max(0.05, stroke.width_mm * PT_PER_MM))
+                pdf.setLineCap(1)
+                pdf.setLineJoin(1)
+                if stroke.dash:
+                    pdf.setDash([v * PT_PER_MM for v in stroke.dash])
+            pdf.drawPath(path_obj, stroke=int(stroke is not None), fill=int(fill is not None))
+            pdf.restoreState()
 
-        xref_offset = len(out)
-        out.extend(f"xref\n0 {len(objects) + 1}\n".encode("latin-1"))
-        out.extend(b"0000000000 65535 f \n")
-        for off in offsets:
-            out.extend(f"{off:010d} 00000 n \n".encode("latin-1"))
-        out.extend(
-            f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R /Info 5 0 R >>\n"
-            f"startxref\n{xref_offset}\n%%EOF\n".encode("latin-1")
-        )
-        path.write_bytes(bytes(out))
+        default_name = next(iter(font_names.values()))
+        for glyph in self._glyph_records:
+            pdf.saveState()
+            pdf.translate(glyph.x_mm * PT_PER_MM, height_pt - glyph.y_mm * PT_PER_MM)
+            pdf.rotate(-glyph.angle_deg)
+            pdf.setFillColor(HexColor(glyph.color))
+            pdf.setFont(font_names.get(glyph.font_id, default_name), max(1.0, glyph.size_mm * PT_PER_MM))
+            pdf.drawString(0, 0, glyph.text)
+            pdf.restoreState()
+
+        pdf.showPage()
+        pdf.save()
 
     def render_pdf(self, path: Path) -> None:
         self.save_pdf(path)
