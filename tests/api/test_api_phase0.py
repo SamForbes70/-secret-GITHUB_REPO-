@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from maps4u import __version__
 from maps4u.api.main import create_app
 from maps4u.core.config import Settings
 
@@ -23,7 +24,7 @@ def test_system_health_ready_and_meta(test_settings: Settings) -> None:
     r_meta = client.get("/api/meta")
     assert r_meta.status_code == 200
     meta = r_meta.json()
-    assert meta["version"] == "0.1.0"
+    assert meta["version"] == __version__
     assert set(meta["papers"]) == {"A3", "A4", "A5"}
     assert set(meta["orientations"]) == {"landscape", "portrait"}
     assert meta["thresholds"]["min_font_mm"] == 1.5
