@@ -1,0 +1,90 @@
+name: Maps4U Live OpenStreetMap Pilot Acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/v1.0.5-audit-remediation
+    paths:
+      - .github/workflows/live-overpass.yml
+
+permissions:
+  contents: read
+
+jobs:
+  live-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare print, geospatial and PDF verification libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            fonts-dejavu-core gdal-bin libgdal-dev libgeos-dev libproj-dev \
+            poppler-utils
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install application
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Create a real map from current public Overpass data
+        run: |
+          python scripts/generate_custom_map.py \
+            --area "Maroochydore" \
+            --bbox=-26.660,153.085,-26.645,153.105 \
+            --paper A4 \
+            --orientation landscape \
+            --edition "live-acceptance-2026-10" \
+            --overpass-url "https://overpass-api.de/api/interpreter" \
+            --data-dir "$RUNNER_TEMP/maps4u-live/var" \
+            --output-dir "$RUNNER_TEMP/maps4u-live/exports" \
+            | tee "$RUNNER_TEMP/maps4u-live-result.json"
+      - name: Verify genuine external OSM snapshot, QA, approved job, reproduced PDF, and print metadata
+        run: |
+          export LIVE_DIR="$RUNNER_TEMP/maps4u-live"
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          from PyPDF2 import PdfReader
+          base = Path(os.environ["LIVE_DIR"])
+          result = json.loads((base.parent / "maps4u-live-result.json").read_text())
+          assert result["status"] == "finalized", result
+          assert result["qa_passed"] and result["blocker_count"] == 0, result
+          assert result["reproduce_matched"] is True, result
+          pdf = Path(result["proof_pdf"])
+          assert hashlib.sha256(pdf.read_bytes()).hexdigest() == result["pdf_sha256"]
+          doc = PdfReader(str(pdf))
+          assert len(doc.pages) == 1
+          raws = list((base / "var" / "osm_cache").glob("*.raw.json"))
+          assert raws, "No live OSM snapshot was saved"
+          raw = json.loads(raws[0].read_text())
+          elements = raw.get("elements", [])
+          assert sum(e.get("type") == "way" and "highway" in e.get("tags", {}) for e in elements) >= 3
+          assert len(elements) > 50
+          print("LIVE OSM ACCEPTANCE PASSED")
+          print(json.dumps({
+              "job_id": result["job_id"],
+              "status": result["status"],
+              "sha256": result["pdf_sha256"],
+              "elements": len(elements),
+              "relations": sum(e.get("type") == "relation" for e in elements),
+              "timestamp": raw.get("osm3s", {}).get("timestamp_osm_base"),
+              "outputs": str(pdf.parent),
+          }, indent=2))
+          PY
+          pdffonts "$LIVE_DIR/exports/maroochydore-a4-landscape/proof.pdf" | tee "$LIVE_DIR/pdffonts.txt"
+          awk 'NR>2 && $4 == "yes" {ok=1} END {exit !ok}' "$LIVE_DIR/pdffonts.txt"
+          pdfinfo "$LIVE_DIR/exports/maroochydore-a4-landscape/proof.pdf"
+      - name: Upload live proof and PNG for independent visual/physical print assessment
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maps4u-live-maroocydore-A4-review
+          path: ${{ runner.temp }}/maps4u-live/exports/
+          if-no-files-found: warn
