@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from importlib.metadata import version
 from pathlib import Path
 from unittest.mock import patch
@@ -12,6 +13,9 @@ from PyPDF2 import PdfReader
 from maps4u import __version__
 from maps4u.api.main import create_app
 from maps4u.core.config import Settings
+from maps4u.core.models import BBox
+from maps4u.geo.fetch import parse_overpass_bytes
+from maps4u.geo.overpass import build_overpass_query
 from maps4u.render.cairo_canvas import DEFAULT_TTF_PATH, CairoCanvas
 from maps4u.render.canvas import Fill, GlyphPlacement, PathOps, Stroke
 from maps4u.render.proof_renderer import verify_pdf_structure
@@ -111,3 +115,33 @@ def test_v105_invalid_corrections_leave_no_orphan_files(tmp_path: Path) -> None:
         assert response.status_code == 422, response.text
     correction_dir = tmp_path / "var" / "corrections"
     assert not list(correction_dir.glob("*.yaml"))
+
+
+def test_v105_relation_multipolygon_with_hole() -> None:
+    outer = [[153.00, -26.70], [153.03, -26.70], [153.03, -26.67],
+             [153.00, -26.67], [153.00, -26.70]]
+    inner = [[153.01, -26.69], [153.02, -26.69], [153.02, -26.68],
+             [153.01, -26.68], [153.01, -26.69]]
+    ways = [
+        {"type": "way", "id": 100, "geometry": [
+            {"lon": lon, "lat": lat} for lon, lat in outer
+        ]},
+        {"type": "way", "id": 200, "geometry": [
+            {"lon": lon, "lat": lat} for lon, lat in inner
+        ]},
+        {"type": "relation", "id": 300, "tags": {
+            "type": "multipolygon", "leisure": "park", "name": "Park with Lake"
+        }, "members": [
+            {"type": "way", "ref": 100, "role": "outer"},
+            {"type": "way", "ref": 200, "role": "inner"},
+        ]},
+    ]
+    features, _ = parse_overpass_bytes(json.dumps({"elements": ways}).encode())
+    assert len(features.parks) == 1
+    park = features.parks.iloc[0].geometry
+    assert len(park.interiors) == 1
+    assert not park.contains(park.interiors[0].representative_point())
+    q = build_overpass_query(BBox(
+        min_lon=153.0, min_lat=-26.70, max_lon=153.04, max_lat=-26.66,
+    ), ["parks"])
+    assert 'relation["leisure"' in q
