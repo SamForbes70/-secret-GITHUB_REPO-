@@ -93,4 +93,8 @@ cid=child["job_id"]
 req("POST",f"/api/jobs/{cid}/run",headers=OP)
 await_state(cid)
 print("PASS: correction child job end to end",flush=True)
-print(json.dumps({"result":"PASSED","original_job":jid,"child_job":cid,"sha256":hashlib.sha256(pdf).hexdigest()}),flush=True)
+font_data_present = any(key in pdf for key in (b"/FontFile ", b"/FontFile2", b"/FontFile3"))
+if not font_data_present:
+    print("FINDING: Proof PDF declares a font descriptor but embeds no actual font program",flush=True)
+print(json.dumps({"result":"PASSED_WITH_FONT_DEFECT" if not font_data_present else "PASSED","original_job":jid,"child_job":cid,"sha256":hashlib.sha256(pdf).hexdigest(),"font_data_present":font_data_present}),flush=True)
+assert font_data_present, "PDF font embedding is required for portable print-ready output"
