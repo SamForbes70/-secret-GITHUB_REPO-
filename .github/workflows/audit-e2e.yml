@@ -1,0 +1,81 @@
+name: Maps4U Audit Only - Real Docker and Browser End To End
+on:
+  push:
+    branches: ["fix/smoke-audit-20261025"]
+permissions:
+  contents: read
+jobs:
+  production-celery-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate ephemeral operator and reviewer credentials
+        run: |
+          OP="$(openssl rand -hex 24)"
+          REV="$(openssl rand -hex 24)"
+          echo "::add-mask::$OP"
+          echo "::add-mask::$REV"
+          echo "MAPS4U_OPERATOR_TOKEN=$OP" >> "$GITHUB_ENV"
+          echo "MAPS4U_REVIEWER_TOKEN=$REV" >> "$GITHUB_ENV"
+          echo "MAPS4U_ENV=prod" >> "$GITHUB_ENV"
+      - name: Inject offline Overpass fixture into API and worker
+        run: |
+          cat > docker-compose.audit.yml <<'YAML'
+          services:
+            api:
+              environment:
+                MAPS4U_OVERPASS_URL: file:///audit-fixtures/mcy_sample.json
+              volumes:
+                - ./tests/fixtures/overpass/mcy_sample.json:/audit-fixtures/mcy_sample.json:ro
+            worker:
+              environment:
+                MAPS4U_OVERPASS_URL: file:///audit-fixtures/mcy_sample.json
+              volumes:
+                - ./tests/fixtures/overpass/mcy_sample.json:/audit-fixtures/mcy_sample.json:ro
+          YAML
+      - name: Build/start the actual API, Redis and Celery worker
+        run: docker compose -f docker-compose.yml -f docker-compose.audit.yml up -d --build
+      - name: Real production HTTP workflow, queue, QA, approval, correction and repro
+        run: python scripts/audit_e2e.py
+      - name: Collect diagnostics and tear down
+        if: always()
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.audit.yml ps || true
+          docker compose -f docker-compose.yml -f docker-compose.audit.yml logs --tail 200 || true
+          docker compose -f docker-compose.yml -f docker-compose.audit.yml down -v || true
+  real-chromium-ui-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install native packages and app/test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fonts-dejavu-core gdal-bin libgdal-dev libgeos-dev libproj-dev
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]' playwright
+          python -m playwright install --with-deps chromium
+      - name: Run real headless browser operator workflow and injection/regression checks
+        env:
+          MAPS4U_QUEUE: inline
+          MAPS4U_ENV: test
+        run: |
+          export MAPS4U_DATA_DIR="$(mktemp -d)"
+          export MAPS4U_OVERPASS_URL="file://$GITHUB_WORKSPACE/tests/fixtures/overpass/mcy_sample.json"
+          python -m uvicorn maps4u.api.main:create_app --factory --host 127.0.0.1 --port 8080 > /tmp/maps4u-audit-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'cat /tmp/maps4u-audit-server.log; kill $SERVER_PID || true' EXIT
+          python scripts/audit_browser.py
+      - name: Upload browser screenshot
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maps4u-browser-audit
+          path: /tmp/maps4u-browser-audit.png
+          if-no-files-found: ignore
