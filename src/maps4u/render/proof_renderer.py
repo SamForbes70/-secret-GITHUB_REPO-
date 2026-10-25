@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from PyPDF2 import PdfReader
+from PyPDF2.generic import ContentStream
 from shapely.geometry import MultiPolygon, Polygon
 
 from maps4u.core.config import Settings
@@ -119,9 +119,11 @@ def verify_pdf_structure(
 
     content = page.get_contents()
     stream = content.get_data().decode("latin-1", errors="replace") if content else ""
+    # Decode graphic operations, including valid even-odd operators B* and f*.
+    operators = [op for _args, op in ContentStream(content, reader).operations] if content else []
     has_vector_paths = bool(
-        re.search(r"(?:^|\s)[ml](?=\s|$)", stream)
-        and re.search(r"(?:^|\s)[sSfFbB](?=\s|$)", stream)
+        any(op in (b"m", b"l", b"c", b"v", b"y", b"re") for op in operators)
+        and any(op in (b"S", b"s", b"f", b"f*", b"F", b"B", b"B*", b"b", b"b*") for op in operators)
     )
 
     resources = page["/Resources"].get_object()
