@@ -263,12 +263,25 @@
       badge.textContent = `Viable — 1:${Math.round(data.scale_denominator)}`;
     }
 
-    summary.innerHTML = `
-      <div><strong>Scale:</strong> 1:${Math.round(data.scale_denominator)} (natural 1:${Math.round(data.natural_scale_denominator)})</div>
-      <div><strong>Extent:</strong> ${data.extent_width_m} m × ${data.extent_height_m} m (${data.area_km2} km²)</div>
-      <div><strong>Min Printed Font:</strong> ${data.min_printed_mm} mm (floor ${data.configured_min_font_mm} mm)</div>
-      <div><strong>Label Density Ratio:</strong> ${data.label_density_ratio}</div>
-    `;
+    summary.replaceChildren();
+    appendJobLine(summary, [
+      ["strong", "Scale: "],
+      ["span", "1:" + Math.round(data.scale_denominator) +
+        " (natural 1:" + Math.round(data.natural_scale_denominator) + ")"],
+    ]);
+    appendJobLine(summary, [
+      ["strong", "Extent: "],
+      ["span", data.extent_width_m + " m × " + data.extent_height_m +
+        " m (" + data.area_km2 + " km²)"],
+    ]);
+    appendJobLine(summary, [
+      ["strong", "Min Printed Font: "],
+      ["span", data.min_printed_mm + " mm (floor " + data.configured_min_font_mm + " mm)"],
+    ]);
+    appendJobLine(summary, [
+      ["strong", "Label Density Ratio: "],
+      ["span", data.label_density_ratio],
+    ]);
 
     (data.blockers || []).forEach((b) => {
       const li = document.createElement("li");
