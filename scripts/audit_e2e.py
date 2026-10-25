@@ -49,6 +49,11 @@ def await_state(jid, goal="proof_ready"):
         if job["status"] == goal:
             return job
         if job["status"] in ("failed", "rejected"):
+            try:
+                report = req("GET", f"/api/jobs/{jid}/artifacts/qa-report.json", headers=OP)
+                print("QA BLOCKER DIAGNOSTICS:", json.dumps(report, indent=2), flush=True)
+            except Exception as exc:
+                print("Could not read QA diagnostics:", repr(exc), flush=True)
             raise AssertionError(f"Unexpected job terminal state {job}")
         time.sleep(2)
     raise AssertionError(f"Job {jid} timed out before {goal}")
