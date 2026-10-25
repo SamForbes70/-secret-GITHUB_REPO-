@@ -241,6 +241,10 @@ class CairoCanvas:
             pageCompression=0,
             invariant=1,
         )
+        # Preserve print-trim and bleed metadata present in v1.0.4 proofs.
+        bleed_pt = self.bleed_mm * PT_PER_MM
+        pdf.setTrimBox((0, 0, width_pt, height_pt))
+        pdf.setBleedBox((-bleed_pt, -bleed_pt, width_pt + bleed_pt, height_pt + bleed_pt))
         pdf.setTitle("Maps4U Street Map Proof")
         pdf.setAuthor("Maps4U")
         pdf.setSubject("Map data OpenStreetMap contributors ODbL")
