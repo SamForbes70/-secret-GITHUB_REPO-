@@ -697,3 +697,47 @@ def test_cache_purge_protects_referenced_and_active_snapshots(tmp_path: Path) ->
     cli_report = json.loads(cli_proc.stdout)
     assert cli_report["dry_run"] is True
     assert locked_snap_id in cli_report["protected_referenced_ids"]
+
+
+def test_generate_custom_map_cli_on_demand_and_style_signoff(tmp_path: Path) -> None:
+    """Verify OD-1 MCY style sign-off (approved: true) and on-demand custom map CLI (scripts/generate_custom_map.py)."""
+    import subprocess
+    import sys
+
+    from maps4u.render.style_engine import load_style_by_ref
+
+    style = load_style_by_ref("mcy/v1")
+    assert style.approved is True
+
+    out_dir = tmp_path / "exports"
+    cli_proc = subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / "scripts" / "generate_custom_map.py"),
+            "--area",
+            "Mooloolaba",
+            "--bbox",
+            "-26.660,153.085,-26.645,153.105",
+            "--paper",
+            "A4",
+            "--orientation",
+            "landscape",
+            "--data-dir",
+            str(tmp_path / "var"),
+            "--output-dir",
+            str(out_dir),
+            "--overpass-url",
+            f"file://{FIXTURE_OVERPASS}",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert cli_proc.returncode == 0, cli_proc.stderr
+    res = json.loads(cli_proc.stdout)
+    assert res["status"] == "finalized"
+    assert res["qa_passed"] is True
+    assert res["reproduce_matched"] is True
+    assert Path(res["proof_pdf"]).is_file()
+    assert Path(res["thumb_png"]).is_file()
+    assert Path(res["qa_report_md"]).is_file()

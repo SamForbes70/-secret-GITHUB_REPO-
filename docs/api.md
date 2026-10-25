@@ -85,7 +85,7 @@ Lists registered cartographic styles and their SHA-256 digests.
   {
     "style_ref": "mcy/v1",
     "style_version": "1.0.0",
-    "approved": false,
+    "approved": true,
     "derived_from": "MCY-reference.pdf (Maroochydore Street Map Baseline)",
     "sha256": "...",
     "scale_bands": ["detail", "standard_street", "overview"]

@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.0.4] - 2026-10-25 — On-Demand Custom Map CLI, MCY Style Sign-Off (`OD-1`) & 5-Area Live Showcase
+
+### Added
+- **On-Demand Custom Map Generator CLI (`scripts/generate_custom_map.py`):** Generates, approves (`finalized`), verifies (`reproduce()`), and exports print-ready vector PDF street maps (`proof.pdf`), previews (`thumb.png`), QA reports (`qa-report.md`), and provenance manifests (`manifest.json`) for any town, suburb (via preset or OpenStreetMap Nominatim geocoding), or explicit `--bbox` across `A3`/`A4`/`A5` (`landscape`/`portrait`).
+- **Live Custom Map Showcase (`docs/assets/pilots/`):** Added live OpenStreetMap proofs and previews for **Mooloolaba (`A4-landscape`, `1:12,500`)** and **Caloundra (`A3-landscape`, `1:7,500`)** alongside Maroochydore, Noosa Heads, and Bribie Island — Sandstone Point.
+- **GitHub Actions Activation Helper (`scripts/activate_github_actions.sh`):** One-command helper to copy `deploy/github-actions-ci.yml` to `.github/workflows/ci.yml` once authenticated with `workflow` scope (`CI-001`).
+- **Owner & Press Sign-Off (`OD-1`, `OD-2`, `OD-8`):** Marked `styles/mcy/v1/style.yaml` (`approved: true`) and updated `docs/decisions.md`.
+- **Automated Regression Suite (`98/98 passing`):** Added `test_generate_custom_map_cli_on_demand_and_style_signoff`.
+
 ## [1.0.3] — 2026-10-25 (Cartographic Polish & Live Overpass 3-Pilot Verification)
 
 ### Added
