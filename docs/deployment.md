@@ -79,3 +79,18 @@ To create a full git bundle, `.tar.gz` archive, bare mirror update, and `.sha256
 ```bash
 python scripts/backup_and_verify.py
 ```
+
+
+## v1.0.5 CI and release acceptance
+
+Pull requests to `main` are checked by `.github/workflows/ci.yml` and
+`.github/workflows/e2e.yml`. Gates include offline pytest, Ruff, MyPy,
+deterministic PDF verification, wheel packaging, a real Redis/Celery
+Docker workflow, an independent `pdffonts` check and a Chromium
+operator journey with malicious API-text regression assertions.
+
+Set required review checks in GitHub branch protection before merging.
+Do not use `scripts/activate_github_actions.sh` to push workflows directly
+to `main`. Review the pull request and check all job logs and rendered
+artifact quality. The live Overpass pilot test is optional and must run
+with external service access and appropriate public API rate limits.

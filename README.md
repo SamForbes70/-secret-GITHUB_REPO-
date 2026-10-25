@@ -1,9 +1,9 @@
-# Maps4U Street Map System (`maps4u-maps` v1.0.2)
+# Maps4U Street Map System (`maps4u-maps` v1.0.5 candidate)
 
-![Release](https://img.shields.io/badge/release-v1.0.4-blue)
+![Release](https://img.shields.io/badge/release-v1.0.5--candidate-orange)
 ![Python](https://img.shields.io/badge/python-3.12%2B%20%7C%203.13-3776AB)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111%2B-009688)
-![Tests](https://img.shields.io/badge/tests-95%2F95%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-CI%20gated-yellow)
 ![Determinism](https://img.shields.io/badge/PDF%20Determinism-SHA--256%20Verified-success)
 ![Map Data](https://img.shields.io/badge/Data-%C2%A9%20OpenStreetMap%20ODbL-7EBC6F)
 
