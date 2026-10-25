@@ -6,7 +6,6 @@ import re
 from playwright.sync_api import expect, sync_playwright
 
 
-
 def run():
     issues = []
     with sync_playwright() as p:
