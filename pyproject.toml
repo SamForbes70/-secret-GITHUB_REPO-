@@ -68,6 +68,9 @@ extend-immutable-calls = ["fastapi.Depends", "Depends"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
+filterwarnings = [
+  "ignore::DeprecationWarning",
+]
 markers = [
     "live: marks tests that hit live external Overpass API (deselect by default)",
 ]
