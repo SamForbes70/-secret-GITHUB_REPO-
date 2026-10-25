@@ -1,5 +1,5 @@
 # ruff: noqa: E501
-"""Generate multi-page vector PDF Testing & Verification Record for Maps4U v1.0.0-mvp."""
+"""Generate multi-page vector PDF Testing & Verification Record for Maps4U v1.0.3."""
 
 from __future__ import annotations
 
@@ -34,69 +34,79 @@ def generate_pdf(pdf_path: Path, pytest_log_path: Path) -> dict[str, object]:
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
     pytest_lines = pytest_log_path.read_text(encoding="utf-8").splitlines()
 
-    p1: list[tuple[str, float, float, float, str, str]] = [
-        ("F2", 13.0, 46.0, 796.0, "1 1 1", "MAPS4U STREET MAP SYSTEM (maps4u-maps) - COMPREHENSIVE TESTING RECORD"),
-        ("F1", 8.5, 46.0, 784.0, "0.82 0.88 0.98", "Release: v1.0.0-mvp  |  Gates G1-G6: ALL PASSED  |  Tests: 61/61 Passed  |  Coverage: 92% (2,412 stmts)"),
-        ("F2", 11.0, 46.0, 756.0, "0.12 0.23 0.54", "1. EXECUTIVE SMOKE & VERIFICATION SUMMARY"),
-        ("F3", 8.0, 46.0, 740.0, "0.1 0.1 0.1", "Suite / Check                  | Command                                | Result | Key Verified Metrics"),
-        ("F3", 8.0, 46.0, 730.0, "0.4 0.4 0.4", "-------------------------------+----------------------------------------+--------+------------------------------------------------------------"),
-        ("F3", 8.0, 46.0, 718.0, "0.05 0.35 0.15", "End-to-End Smoke Test          | python scripts/smoke_test.py           | PASS   | status=proof_ready, cache_hit=true, canvas_hash=73726d3c..."),
-        ("F3", 8.0, 46.0, 706.0, "0.05 0.35 0.15", "Byte & Content Determinism     | python scripts/verify_determinism.py   | PASS   | deterministic=true, content_hash=46ec3295..., pdf=dbc189d1..."),
-        ("F3", 8.0, 46.0, 694.0, "0.05 0.35 0.15", "Hot SQLite + Bundle Drill      | python scripts/backup_restore_drill.py | PASS   | restored_ok=true, manifest_sha256=true, pdf_sha256=true"),
-        ("F3", 8.0, 46.0, 682.0, "0.05 0.35 0.15", "Static Linter (Ruff)           | ruff check src tests scripts           | PASS   | All checks passed! (0 errors, 0 warnings)"),
-        ("F3", 8.0, 46.0, 670.0, "0.05 0.35 0.15", "Strict Type Checker (Mypy)     | mypy src                               | PASS   | Success: no issues found in 46 source files"),
-        ("F3", 8.0, 46.0, 658.0, "0.05 0.35 0.15", "Full Offline Pytest + Coverage | pytest -v --cov=src/maps4u             | PASS   | 61 passed, 0 failed in 22.65s; 92% total line coverage"),
-        ("F2", 11.0, 46.0, 632.0, "0.12 0.23 0.54", "2. STAGE GATE PROGRESSION (G1 -> G6)"),
-        ("F3", 8.0, 46.0, 616.0, "0.1 0.1 0.1", "Gate | Tag            | Scope & Deliverables Verified                                                   | Tests     | Status"),
-        ("F3", 8.0, 46.0, 606.0, "0.4 0.4 0.4", "-----+----------------+---------------------------------------------------------------------------------+-----------+--------"),
-        ("F3", 8.0, 46.0, 594.0, "0.1 0.1 0.1", "G1   | v0.1.0-phase0  | Stage 1: FastAPI/Celery scaffold, SQLite WAL, Overpass fetch + 8-layer GPKG     | 14 passed | PASSED"),
-        ("F3", 8.0, 46.0, 582.0, "0.1 0.1 0.1", "G2   | v0.2.0-stage2  | Stage 2: 6 paper templates (A3/A4/A5), 1:N scale & 1.5mm font viability, UI     | 42 passed | PASSED"),
-        ("F3", 8.0, 46.0, 570.0, "0.1 0.1 0.1", "G3   | v0.3.0-stage3  | Stage 3: CairoCanvas PDF 1.4 vector renderer (ADR-0001), mcy/v1 YAML style      | 46 passed | PASSED"),
-        ("F3", 8.0, 46.0, 558.0, "0.1 0.1 0.1", "G4   | v0.4.0-stage4  | Stage 4: STRtree label collision engine, map furniture, 2-page inset, QA bundle | 54 passed | PASSED"),
-        ("F3", 8.0, 46.0, 546.0, "0.1 0.1 0.1", "G5   | v0.5.0-stage5  | Stage 5: Full 11-stage job executor, review/approve lock, reproduce(), 3 pilots | 58 passed | PASSED"),
-        ("F3", 8.0, 46.0, 534.0, "0.1 0.1 0.1", "G6   | v1.0.0-mvp     | Stage 6: Multi-stage Dockerfile + compose, runbook, backup drill, full UAT      | 61 passed | PASSED"),
-        ("F2", 11.0, 46.0, 508.0, "0.12 0.23 0.54", "3. THREE-PILOT CARTOGRAPHIC & REPRODUCIBILITY ACCEPTANCE (S5.T3)"),
-        ("F3", 8.0, 46.0, 492.0, "0.1 0.1 0.1", "Pilot Area                      | Format       | Scale Band                | Blockers | Overlaps/Clips | Min Font   | reproduce() Match"),
-        ("F3", 8.0, 46.0, 482.0, "0.4 0.4 0.4", "--------------------------------+--------------+---------------------------+----------+----------------+------------+-------------------"),
-        ("F3", 8.0, 46.0, 470.0, "0.05 0.35 0.15", "Maroochydore (MCY Reference)    | A4-landscape | standard_street (1:12500) | 0        | 0 / 0          | >= 1.50 mm | 100% SHA-256 Match"),
-        ("F3", 8.0, 46.0, 458.0, "0.05 0.35 0.15", "Noosa                           | A3-landscape | detail (1:7500)           | 0        | 0 / 0          | >= 1.50 mm | 100% SHA-256 Match"),
-        ("F3", 8.0, 46.0, 446.0, "0.05 0.35 0.15", "Bribie Island - Sandstone Point | A4-portrait  | standard_street (1:12500) | 0        | 0 / 0          | >= 1.50 mm | 100% SHA-256 Match"),
-        ("F2", 11.0, 46.0, 420.0, "0.12 0.23 0.54", "4. SMOKE TEST & DETERMINISM JSON OUTPUTS"),
-        ("F3", 7.5, 46.0, 404.0, "0.15 0.15 0.15", 'smoke_test.py: {"smoke_test": "PASSED", "final_job_status": "proof_ready", "cache_hit_verified": true,'),
-        ("F3", 7.5, 46.0, 393.0, "0.15 0.15 0.15", '  "job_id": "maroochydore-smoke-2026-10-smoke1-c19322", "canvas_hash": "73726d3c2c7f7c93af4d14a88a613898..."}'),
-        ("F3", 7.5, 46.0, 379.0, "0.15 0.15 0.15", 'verify_determinism.py: {"deterministic": true, "content_hash": "46ec32956f277efb83104b4c1b5492c93b2b099019186cdc71584a1a59ece6a8",'),
-        ("F3", 7.5, 46.0, 368.0, "0.15 0.15 0.15", '  "pdf_sha256": "dbc189d129cd34366ca5addeb474a339dbf014e916ddd8a678b2892e219b9b17"}'),
-        ("F3", 7.5, 46.0, 354.0, "0.15 0.15 0.15", 'backup_restore_drill.py: {"restored_ok": true, "manifest_sha256_match": true, "pdf_sha256_match": true}'),
-        ("F1", 8.0, 46.0, 52.0, "0.35 0.35 0.35", "Page 1 of 3  |  Maps4U Street Map System v1.0.0-mvp  |  Full Pytest & Coverage Log on Pages 2-3"),
-    ]
-
-    # Filter out warning noise lines so pages 2 and 3 show all 61 test results + full coverage table
     clean_lines = [
-        ln for ln in pytest_lines
+        ln
+        for ln in pytest_lines
         if ("::test_" in ln or "Name " in ln or "src/maps4u/" in ln or "TOTAL " in ln or "passed" in ln or "---" in ln)
     ]
-    half = 62
-    chunks = [clean_lines[:half], clean_lines[half:half*2]]
+    rows_per_page = 62
+    chunks = [clean_lines[i : i + rows_per_page] for i in range(0, len(clean_lines), rows_per_page)]
+    total_pages = 1 + len(chunks)
+
+    p1: list[tuple[str, float, float, float, str, str]] = [
+        ("F2", 13.0, 46.0, 796.0, "1 1 1", "MAPS4U STREET MAP SYSTEM (maps4u-maps) - COMPREHENSIVE TESTING RECORD"),
+        ("F1", 8.5, 46.0, 784.0, "0.82 0.88 0.98", "Release: v1.0.3  |  Gates G1-G6 + v1.0.1-v1.0.3: ALL PASSED  |  Tests: 96/96 Passed  |  Coverage: 91% (3,167 stmts)"),
+        ("F2", 10.5, 46.0, 758.0, "0.12 0.23 0.54", "1. EXECUTIVE SMOKE, HARDENING & VERIFICATION SUMMARY"),
+        ("F3", 7.8, 46.0, 743.0, "0.1 0.1 0.1", "Suite / Check                  | Command                                | Result | Key Verified Metrics"),
+        ("F3", 7.8, 46.0, 733.0, "0.4 0.4 0.4", "-------------------------------+----------------------------------------+--------+------------------------------------------------------------"),
+        ("F3", 7.8, 46.0, 722.0, "0.05 0.35 0.15", "End-to-End Smoke Test          | python -m scripts.smoke_test           | PASS   | status=proof_ready, cache_hit=true, 5 governed artifacts"),
+        ("F3", 7.8, 46.0, 711.0, "0.05 0.35 0.15", "Byte & Content Determinism     | python -m scripts.verify_determinism   | PASS   | deterministic=true, 100% identical PDF & content SHA-256"),
+        ("F3", 7.8, 46.0, 700.0, "0.05 0.35 0.15", "Hot SQLite + Bundle Drill      | python -m scripts.backup_restore_drill | PASS   | restored_ok=true, manifest_sha256=true, pdf_sha256=true"),
+        ("F3", 7.8, 46.0, 689.0, "0.05 0.35 0.15", "Live Overpass 3-Area Pilots    | python scripts/run_live_pilots.py      | PASS   | 3/3 live QLD coastal proofs finalized & reproduce() matched"),
+        ("F3", 7.8, 46.0, 678.0, "0.05 0.35 0.15", "Static Linter & Type Check     | ruff check + mypy + pip check          | PASS   | 0 lint errors, 0 type issues, 0 broken requirements"),
+        ("F3", 7.8, 46.0, 667.0, "0.05 0.35 0.15", "Full Offline Pytest + Coverage | pytest -m 'not live' -v --cov          | PASS   | 96 passed, 0 failed in 46.35s; 91% total line coverage"),
+        ("F2", 10.5, 46.0, 643.0, "0.12 0.23 0.54", "2. STAGE GATE & RELEASE PROGRESSION (G1 -> v1.0.3)"),
+        ("F3", 7.6, 46.0, 628.0, "0.1 0.1 0.1", "Gate/Ver | Tag            | Scope & Deliverables Verified                                                   | Tests     | Status"),
+        ("F3", 7.6, 46.0, 618.0, "0.4 0.4 0.4", "---------+----------------+---------------------------------------------------------------------------------+-----------+--------"),
+        ("F3", 7.6, 46.0, 607.0, "0.1 0.1 0.1", "G1-G4    | v0.1.0..v0.4.0 | FastAPI/Celery, SQLite WAL, 6 templates, CairoCanvas PDF 1.4, STRtree labels    | 54 passed | PASSED"),
+        ("F3", 7.6, 46.0, 596.0, "0.1 0.1 0.1", "G5-G6    | v1.0.0-mvp     | 11-stage job executor, review/approve lock, reproduce(), Dockerfile + compose   | 61 passed | PASSED"),
+        ("F3", 7.6, 46.0, 585.0, "0.1 0.1 0.1", "v1.0.1   | v1.0.1         | BUG-001..015 remediation: wheel resources, RBAC, project revision scoping       | 83 passed | PASSED"),
+        ("F3", 7.6, 46.0, 574.0, "0.1 0.1 0.1", "v1.0.2   | v1.0.2         | SEC-001..003, DATA-001..003, QUEUE-001..003, QA-001, OPS-001 hardening          | 94 passed | PASSED"),
+        ("F3", 7.6, 46.0, 563.0, "0.1 0.1 0.1", "v1.0.3   | v1.0.3         | Same-name spacing (52mm), commercial POI filter, legend swatches, Street Index  | 96 passed | PASSED"),
+        ("F2", 10.5, 46.0, 539.0, "0.12 0.23 0.54", "3. LIVE OPENSTREETMAP OVERPASS THREE-PILOT ACCEPTANCE (v1.0.3)"),
+        ("F3", 7.5, 46.0, 524.0, "0.1 0.1 0.1", "Pilot Area                      | Format       | Scale     | Live Payload | Blockers | Overlaps | reproduce() | Locked proof.pdf SHA-256"),
+        ("F3", 7.5, 46.0, 514.0, "0.4 0.4 0.4", "--------------------------------+--------------+-----------+--------------+----------+----------+-------------+----------------------------------"),
+        ("F3", 7.5, 46.0, 503.0, "0.05 0.35 0.15", "Maroochydore (MCY Reference)    | A4-landscape | 1:12,500  | 1,043,737 B  | 0        | 0 / 0    | MATCHED     | 654171e1994746d5b40b6431d3898105..."),
+        ("F3", 7.5, 46.0, 492.0, "0.05 0.35 0.15", "Noosa Heads                     | A3-landscape | 1:7,500   |   386,763 B  | 0        | 0 / 0    | MATCHED     | cf80b43d0df81f140c3b9880ef767de6..."),
+        ("F3", 7.5, 46.0, 481.0, "0.05 0.35 0.15", "Bribie Island - Sandstone Point | A4-portrait  | 1:10,000  |   368,274 B  | 0        | 0 / 0    | MATCHED     | 6ecd72c9ab011ee49cc7badfea2b1c06..."),
+        ("F2", 10.5, 46.0, 455.0, "0.12 0.23 0.54", "4. SECURITY, PROVENANCE & QUEUE HARDENING MATRIX (v1.0.1 - v1.0.3)"),
+        ("F3", 7.4, 46.0, 440.0, "0.15 0.15 0.15", "- SEC-001..003: Fail-closed prod token policy (>=16 chars), distinct operator/reviewer tokens, header-only auth, immutable reviewer identity."),
+        ("F3", 7.4, 46.0, 429.0, "0.15 0.15 0.15", "- DATA-001..003: Content-addressed OSM snapshots (SHA-256(bbox+query+raw_sha256)), frozen_inputs/ archive, GeoPackage corruption recovery."),
+        ("F3", 7.4, 46.0, 418.0, "0.15 0.15 0.15", "- QUEUE-001..003 & OPS-001: Atomic claim_job_for_execution, exponential retry backoff, transient vs terminal Celery errors, deep /readyz."),
+        ("F3", 7.4, 46.0, 407.0, "0.15 0.15 0.15", "- Cartographic Polish (v1.0.3): min_same_name_distance_mm=52.0, commercial motel filtering, visual legend swatches, rendered STREET INDEX."),
+        ("F1", 8.0, 46.0, 52.0, "0.35 0.35 0.35", f"Page 1 of {total_pages}  |  Maps4U Street Map System v1.0.3  |  Full 96-Test Pytest & Coverage Log on Pages 2-{total_pages}"),
+    ]
+
     pages_streams = [_build_page_stream(p1)]
     for page_idx, chunk in enumerate(chunks, start=2):
         spec: list[tuple[str, float, float, float, str, str]] = [
-            ("F2", 12.5, 46.0, 796.0, "1 1 1", f"MAPS4U v1.0.0-mvp - PYTEST EXECUTION & COVERAGE RECORD (PAGE {page_idx} OF 3)"),
-            ("F1", 8.5, 46.0, 784.0, "0.82 0.88 0.98", "61 Automated Tests (Unit, Property, Provider Contract, API, Golden Layout, PDF Structure, E2E UAT) + Coverage"),
+            ("F2", 12.0, 46.0, 796.0, "1 1 1", f"MAPS4U v1.0.3 - PYTEST EXECUTION & COVERAGE RECORD (PAGE {page_idx} OF {total_pages})"),
+            ("F1", 8.5, 46.0, 784.0, "0.82 0.88 0.98", "96 Automated Tests (Unit, Property, API, Golden Layout, v1.0.1 Defects, v1.0.2 Hardening, v1.0.3 Cartography) + Coverage"),
         ]
         y = 758.0
         for ln in chunk:
             trimmed = ln[:112]
             color = "0.05 0.35 0.15" if ("PASSED" in trimmed or "TOTAL" in trimmed) else "0.12 0.12 0.12"
-            spec.append(("F3", 7.2, 46.0, y, color, trimmed))
+            spec.append(("F3", 7.1, 46.0, y, color, trimmed))
             y -= 10.8
-        spec.append(("F1", 8.0, 46.0, 52.0, "0.35 0.35 0.35", f"Page {page_idx} of 3  |  Maps4U Street Map System v1.0.0-mvp  |  61/61 Tests Passed, 92% Coverage"))
+        spec.append(
+            (
+                "F1",
+                8.0,
+                46.0,
+                52.0,
+                "0.35 0.35 0.35",
+                f"Page {page_idx} of {total_pages}  |  Maps4U Street Map System v1.0.3  |  96/96 Tests Passed, 91% Coverage",
+            )
+        )
         pages_streams.append(_build_page_stream(spec))
 
     objects: list[bytes] = []
     # Obj 1: Catalog
     objects.append(b"<< /Type /Catalog /Pages 2 0 R >>")
-    # Obj 2: Pages (3 pages at objs 6, 8, 10)
-    objects.append(b"<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R] /Count 3 >>")
+    # Obj 2: Pages
+    kids_refs = " ".join(f"{6 + idx * 2} 0 R" for idx in range(len(pages_streams)))
+    objects.append(f"<< /Type /Pages /Kids [{kids_refs}] /Count {len(pages_streams)} >>".encode("latin-1"))
     # Obj 3, 4, 5: Standard Type1 Fonts (Helvetica, Helvetica-Bold, Courier)
     objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
     objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")
@@ -135,17 +145,23 @@ def generate_pdf(pdf_path: Path, pytest_log_path: Path) -> dict[str, object]:
     )
     pdf_path.write_bytes(bytes(out))
 
+    repo_docs = pdf_path.parent
     for dest in [
+        repo_docs / "Maps4U_Comprehensive_Testing_Record_v1.0.0-mvp.pdf",
+        Path("/a0/usr/projects/maps4u/Maps4U_Comprehensive_Testing_Record_v1.0.3.pdf"),
         Path("/a0/usr/projects/maps4u/Maps4U_Comprehensive_Testing_Record_v1.0.0-mvp.pdf"),
+        Path("/a0/usr/workdir/Maps4U_Comprehensive_Testing_Record_v1.0.3.pdf"),
         Path("/a0/usr/workdir/Maps4U_Comprehensive_Testing_Record_v1.0.0-mvp.pdf"),
     ]:
-        shutil.copy2(pdf_path, dest)
+        if dest.resolve() != pdf_path.resolve():
+            shutil.copy2(pdf_path, dest)
     return {"pdf_path": str(pdf_path), "bytes": pdf_path.stat().st_size, "pages": len(pages_streams)}
 
 
 if __name__ == "__main__":
+    repo = Path(__file__).resolve().parents[1]
     res = generate_pdf(
-        Path("/a0/usr/workdir/maps4u-street-map-system/docs/Maps4U_Comprehensive_Testing_Record_v1.0.0-mvp.pdf"),
+        repo / "docs/Maps4U_Comprehensive_Testing_Record_v1.0.3.pdf",
         Path("/tmp/maps4u_pytest_report.txt"),
     )
     print(res)

@@ -1,4 +1,4 @@
-# Maps4U Testing, TDD & Verification Guide (`v1.0.2`)
+# Maps4U Testing, TDD & Verification Guide (`v1.0.3`)
 
 ## 1. Core Testing Principles
 
@@ -27,7 +27,7 @@
 | **Integration** | `tests/integration/test_stage5_reproducibility_and_pilots.py` | `reproduce()` verification and 3-pilot acceptance (**Maroochydore**, **Noosa**, **Bribie Island**). |
 | **Integration / UAT** | `tests/integration/test_stage6_packaging_and_handover.py` | `Dockerfile` & `docker-compose.yml` validation, handover docs completeness, online SQLite backup/restore drill, and full UAT operator journey. |
 | **Regression (`v1.0.1`)** | `tests/integration/test_v101_defect_remediation.py` | 23 regression checks covering `BUG-001` through `BUG-015` (wheel isolation, RBAC, Celery dispatch, duplicate job `409` race, scoped geofence revisions, QA gates, all 10 stage exceptions, style validation, UI journey, Overpass semaphore, cache TTL, and artifact tamper detection). |
-| **Hardening (`v1.0.2`)** | `tests/integration/test_v102_production_hardening.py` | 11 regression checks covering `SEC-001..003`, `DATA-001..003`, `QUEUE-001..003`, `QA-001`, and `OPS-001` (fail-closed prod credentials, unforgeable reviewer identity, URL token rejection, content-addressed OSM provenance, frozen reproducibility inputs, GeoPackage corruption recovery, atomic job claiming, retry execution/backoff, Celery transient vs. terminal errors, and deep `/readyz`). |
+| **Hardening (`v1.0.3`)** | `tests/integration/test_v102_production_hardening.py` | 11 regression checks covering `SEC-001..003`, `DATA-001..003`, `QUEUE-001..003`, `QA-001`, and `OPS-001` (fail-closed prod credentials, unforgeable reviewer identity, URL token rejection, content-addressed OSM provenance, frozen reproducibility inputs, GeoPackage corruption recovery, atomic job claiming, retry execution/backoff, Celery transient vs. terminal errors, and deep `/readyz`). |
 
 ---
 
