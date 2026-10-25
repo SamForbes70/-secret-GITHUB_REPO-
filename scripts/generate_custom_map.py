@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import secrets
 import shutil
 import sys
 import time
@@ -97,11 +98,11 @@ def generate_custom_map(
     geofence = _bbox_to_polygon(min_lat, min_lon, max_lat, max_lon)
     slug = f"{_slugify(area_name)}-{paper.lower()}-{orientation.lower()}"
 
-    base_dir = data_dir.resolve() if data_dir else Path("/a0/usr/projects/maps4u/live-pilots-v1.0.2/var")
-    export_root = output_dir.resolve() if output_dir else Path("/a0/usr/projects/maps4u/live-pilots-v1.0.2/exports")
+    base_dir = data_dir.resolve() if data_dir else Path.cwd() / "var"
+    export_root = output_dir.resolve() if output_dir else Path.cwd() / "exports"
 
-    op_token = "maps4u-live-operator-token-2026-strong"
-    rev_token = "maps4u-live-reviewer-token-2026-strong"
+    op_token = secrets.token_urlsafe(32)
+    rev_token = secrets.token_urlsafe(32)
     op_headers = {"Authorization": f"Bearer {op_token}"}
     rev_headers = {"Authorization": f"Bearer {rev_token}"}
 
