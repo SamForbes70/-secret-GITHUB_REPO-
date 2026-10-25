@@ -119,9 +119,9 @@ def verify_pdf_structure(
     page_size_matches = abs(w_pt - exp_w_pt) <= 1.0 and abs(h_pt - exp_h_pt) <= 1.0
 
     content = page.get_contents()
-    stream = content.get_data().decode("latin-1", errors="replace") if content else ""
+    stream = content.get_data().decode("latin-1", errors="replace") if content is not None else ""
     # Decode graphic operations, including valid even-odd operators B* and f*.
-    operators = [op for _args, op in ContentStream(content, reader).operations] if content else []
+    operators = [op for _args, op in ContentStream(content, reader).operations] if content is not None else []
     has_vector_paths = bool(
         (
             any(op in (b"m", b"l", b"c", b"v", b"y", b"re") for op in operators)
