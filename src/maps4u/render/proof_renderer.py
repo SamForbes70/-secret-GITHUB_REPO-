@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -122,8 +123,14 @@ def verify_pdf_structure(
     # Decode graphic operations, including valid even-odd operators B* and f*.
     operators = [op for _args, op in ContentStream(content, reader).operations] if content else []
     has_vector_paths = bool(
-        any(op in (b"m", b"l", b"c", b"v", b"y", b"re") for op in operators)
-        and any(op in (b"S", b"s", b"f", b"f*", b"F", b"B", b"B*", b"b", b"b*") for op in operators)
+        (
+            any(op in (b"m", b"l", b"c", b"v", b"y", b"re") for op in operators)
+            and any(op in (b"S", b"s", b"f", b"f*", b"F", b"B", b"B*", b"b", b"b*") for op in operators)
+        )
+        or (
+            re.search(r"(?:^|\\s)(?:m|l|c|v|y|re)(?=\\s|$)", stream)
+            and re.search(r"(?:^|\\s)(?:S|s|f\\*?|F|B\\*?|b\\*?)(?=\\s|$)", stream)
+        )
     )
 
     resources = page["/Resources"].get_object()
@@ -165,6 +172,8 @@ def verify_pdf_structure(
         "page_height_pt": round(h_pt, 3),
         "page_size_matches": page_size_matches,
         "has_vector_paths": has_vector_paths,
+        "vector_path_operator_count": sum(op in (b"m", b"l", b"c", b"re") for op in operators),
+        "vector_paint_operator_count": sum(op in (b"S", b"s", b"f", b"f*", b"B", b"B*") for op in operators),
         "fonts_embedded": fonts_embedded,
         "embedded_font_count": embedded_fonts,
         "has_odbl_attribution": has_odbl_attribution,
