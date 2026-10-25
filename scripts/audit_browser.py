@@ -1,7 +1,7 @@
+# ruff: noqa: E501
 """Audit-only real Chromium browser walk-through and negative interaction tests."""
 import json
-import os
-from pathlib import Path
+import re
 from playwright.sync_api import sync_playwright, expect
 
 def run():
@@ -41,7 +41,6 @@ def run():
 
         # Reflect a deliberately hostile server error payload in the existing job status UI.
         job_line = page.locator("#job-status-readout").inner_text()
-        import re
         m = re.search(r"Job ID:\s*([^\s]+)", job_line)
         assert m,job_line
         jid = m.group(1)
