@@ -1,4 +1,6 @@
+# ruff: noqa: E501
 """Isolated audit-only real HTTP smoke test against Docker Compose (Redis/API/Celery)."""
+import hashlib
 import json
 import os
 import time
@@ -72,7 +74,6 @@ print("PASS: project, geofence, deduplication and REAL Celery execution",done["s
 qa = req("GET",f"/api/jobs/{jid}/artifacts/qa-report.json",headers=REV)
 manifest = req("GET",f"/api/jobs/{jid}/artifacts/manifest.json",headers=OP)
 pdf = req("GET",f"/api/jobs/{jid}/artifacts/proof.pdf",headers=REV,binary=True)
-import hashlib
 assert qa["passed"] and qa["blocker_count"] == 0,qa
 assert pdf.startswith(b"%PDF-")
 assert hashlib.sha256(pdf).hexdigest() == manifest["outputs"]["proof_pdf"]["sha256"]
