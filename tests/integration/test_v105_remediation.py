@@ -12,7 +12,7 @@ from PyPDF2 import PdfReader
 from maps4u import __version__
 from maps4u.api.main import create_app
 from maps4u.core.config import Settings
-from maps4u.render.cairo_canvas import CairoCanvas, DEFAULT_TTF_PATH
+from maps4u.render.cairo_canvas import DEFAULT_TTF_PATH, CairoCanvas
 from maps4u.render.canvas import Fill, GlyphPlacement, PathOps, Stroke
 from maps4u.render.proof_renderer import verify_pdf_structure
 
