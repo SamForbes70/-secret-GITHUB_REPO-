@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -52,7 +53,7 @@ class RejectDecisionRequest(BaseModel):
 
 
 class CorrectionsSubmitRequest(BaseModel):
-    yaml_content: str = Field(..., min_length=1)
+    yaml_content: str = Field(..., min_length=1, max_length=1_048_576)
     author: str = Field(default="operator", min_length=1)
 
 
@@ -413,10 +414,34 @@ def run_job_endpoint(
                 )
         celery_app.conf.broker_url = settings.redis_url
         celery_app.conf.result_backend = settings.redis_url
-        run_job_task.apply_async(
-            args=[job_id],
-            kwargs={"settings_overrides": _serialize_settings(settings)},
-        )
+        try:
+            run_job_task.apply_async(
+                args=[job_id],
+                kwargs={"settings_overrides": _serialize_settings(settings)},
+            )
+        except Exception as exc:
+            # Publishing is not transactional with SQLite; never leave an
+            # unclaimed queued job stranded if the broker is unavailable.
+            with db_session(settings.db_path) as conn:
+                current = conn.execute("SELECT status FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
+                if current is not None and current["status"] == "queued":
+                    transition_job_state(
+                        conn,
+                        job_id=job_id,
+                        target_state="failed",
+                        stage="failed",
+                        event="celery_dispatch_failed",
+                        data_dir=settings.maps4u_data_dir,
+                        artifact_dir=settings.artifact_dir,
+                        error_code="E_QUEUE_UNAVAILABLE",
+                        error_detail=type(exc).__name__,
+                    )
+            raise Maps4UError(
+                E_STORAGE,
+                "Unable to dispatch job to the Celery broker. The job may be retried.",
+                details={"job_id": job_id, "reason": type(exc).__name__},
+                status_code=503,
+            ) from exc
         return get_job(job_id, settings)
 
     with db_session(settings.db_path) as conn:
@@ -651,10 +676,20 @@ def submit_job_corrections(
     corr_sha = sha256_hex(corr_bytes)
     corr_id = f"corr-{corr_sha[:12]}"
     corr_path = corr_dir / f"{corr_id}.yaml"
-    corr_path.write_bytes(corr_bytes)
-
+    if len(corr_bytes) > 1_048_576:
+        raise Maps4UError(E_CORRECTIONS_INVALID, "Corrections exceed the 1 MB limit", status_code=422)
     schema_path = resolve_resource_path("schemas/corrections.schema.json", explicit_base=settings.maps4u_schema_dir)
-    load_and_validate_corrections(corr_path, schema_path=schema_path)
+    # Validate a temporary file; malformed content must never become a
+    # persistent correction, even if the request fails.
+    with tempfile.NamedTemporaryFile(dir=corr_dir, prefix=".validation-", suffix=".yaml", delete=False) as tmp:
+        tmp.write(corr_bytes)
+        tmp_path = Path(tmp.name)
+    try:
+        load_and_validate_corrections(tmp_path, schema_path=schema_path)
+        if not corr_path.exists():
+            tmp_path.replace(corr_path)
+    finally:
+        tmp_path.unlink(missing_ok=True)
 
     now_iso = datetime.now(UTC).isoformat()
     with db_session(settings.db_path) as conn:

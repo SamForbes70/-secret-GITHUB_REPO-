@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.0.5] - Unreleased (review required)
+
+### Fixed / hardened
+- Clear geofence revision and invalidate pending viability responses when map geometry changes; block stale jobs.
+- Remove unsafe browser HTML interpolation of API job metadata and error details.
+- Generate Unicode-capable TrueType-subset PDF files using deterministic ReportLab rendering.
+- Verify embedded PDF font data and decoded vector paint operations in print QA.
+- Recover Celery publish failures as retryable failed jobs rather than stranded queue entries.
+- Validate YAML corrections before atomically recording a persistent copy.
+- Use portable custom-map workspace paths and ephemeral local API credentials.
+- Support OSM relation-based parks, water and boundaries, including multipolygon holes.
+- Improve text alignment and rotation in PNG thumbnail previews.
+- Synchronise runtime and distribution versions with v1.0.5.
+- Activate full GitHub Actions checks and actual Chromium and Docker/Celery end-to-end gates.
+
+This is a release candidate until the full CI and external acceptance checks have passed.
+
 ## [1.0.4] - 2026-10-25 — On-Demand Custom Map CLI, MCY Style Sign-Off (`OD-1`) & 5-Area Live Showcase
 
 ### Added
