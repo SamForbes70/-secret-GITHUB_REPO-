@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.0.3] — 2026-10-25 (Cartographic Polish & Live Overpass 3-Pilot Verification)
+
+### Added
+- **Same-Name Street Label Spacing (`min_same_name_distance_mm`):** Added configurable minimum spacing (`52.0 mm` default in `styles/mcy/v1/style.yaml` and `schemas/style.schema.json`) and longest-segment-first sorting in `src/maps4u/labels/engine.py` so multi-segment OSM roads (`Horton Parade`, `Bribie Island Road`, `Noosa Drive`) repeat at clean, well-spaced intervals across the sheet instead of clustering on adjacent short segments.
+- **Visual Legend Swatches (`src/maps4u/layout/furniture.py`):** Rendered colour-accurate polygon fills (`water`, `parks`), double-cased arterial road swatches (`roads`), and stroke swatches (`coastline`, `water_lines`, `boundaries`) inside the Legend box.
+- **Rendered Multi-Column Street Index Panel (`src/maps4u/layout/furniture.py`):** Added a bordered multi-column `STREET INDEX` panel (`Street Name [Grid Cell]`) in the reserved furniture sidebar below the Legend on landscape sheets and below the Title Block on portrait sheets.
+- **Live Overpass 3-Area Pilot Runner (`scripts/run_live_pilots.py`):** Automated live OpenStreetMap Overpass API execution, approval, and `reproduce()` verification for **Maroochydore (`A4-landscape`)**, **Noosa Heads (`A3-landscape`)**, and **Bribie Island — Sandstone Point (`A4-portrait`)**.
+
+### Fixed
+- **Commercial Lodging Filtered from Geographic Suburb Titles (`src/maps4u/geo/fetch.py`, `src/maps4u/labels/engine.py`):** Restricted `suburb` labels (`4.5 mm`) to true geographic place types (`suburb`, `locality`, `town`, `hamlet`, `island`, `neighbourhood`, `quarter`), routed scenic `viewpoint`/`attraction`/`peak`/`cape` nodes to `landmarks` (`2.8 mm`), and excluded commercial lodging (`motel`, `hotel`, `hostel`, `guest_house`, `apartment`) from crowding street labels.
+- **Unnamed OSM Feature `NaN` Label Filtering (`src/maps4u/labels/engine.py`):** Filtered pandas `float('nan')` names so unnamed ways/polygons never emit literal `"nan"` labels.
+
+---
+
 ## [1.0.2] - 2026-10-24 (Production Hardening, Immutable Provenance & Queue Resilience)
 
 ### Fixed & Hardened

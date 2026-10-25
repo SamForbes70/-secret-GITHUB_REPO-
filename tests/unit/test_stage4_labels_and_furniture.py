@@ -125,4 +125,94 @@ def test_nan_names_are_filtered_from_labels(test_settings: Settings) -> None:
     fid = canvas.embedded_font(DEFAULT_TTF_PATH)
     res = place_labels(fset, geofence, plan, tpl, style, canvas, fid, seed=0)
     assert all(p.text.lower() != "nan" for p in res.placed)
-    assert all(d.get("text", "").lower() != "nan" for d in res.dropped)
+    assert all(d.text.lower() != "nan" for d in res.dropped)
+
+
+def test_v103_same_name_distance_deduplication_and_commercial_poi_filtering(
+    test_settings: Settings,
+) -> None:
+    import pandas as pd
+    from shapely.geometry import LineString, Point
+
+    bbox = BBox(min_lon=153.085, min_lat=-26.660, max_lon=153.105, max_lat=-26.645)
+    classes = ["roads", "water", "water_lines", "parks", "boundaries", "coastline", "places", "landmarks"]
+    extract = get_or_fetch(bbox=bbox, classes=classes, settings=test_settings)
+    fset = load_features_from_gpkg(extract.gpkg_path)
+
+    # Add a commercial motel to places and two short adjacent road segments with the same street name
+    motel_row = pd.DataFrame(
+        [
+            {
+                "osm_id": 888001,
+                "name": "Top Spot Motel",
+                "place_type": "motel",
+                "importance": 50,
+                "maps4u_class": "place",
+                "corrected": 0,
+                "correction_id": None,
+                "geometry": Point(153.092, -26.652),
+            }
+        ]
+    )
+    fset.places = pd.concat([fset.places, motel_row], ignore_index=True)
+
+    dup_roads = pd.DataFrame(
+        [
+            {
+                "osm_id": 888010,
+                "name": "Duporth Avenue",
+                "ref": None,
+                "highway": "secondary",
+                "oneway": "no",
+                "surface": "asphalt",
+                "z_order_base": 14,
+                "maps4u_class": "collector",
+                "corrected": 0,
+                "correction_id": None,
+                "geometry": LineString([(153.088, -26.651), (153.091, -26.651)]),
+            },
+            {
+                "osm_id": 888011,
+                "name": "Duporth Avenue",
+                "ref": None,
+                "highway": "secondary",
+                "oneway": "no",
+                "surface": "asphalt",
+                "z_order_base": 14,
+                "maps4u_class": "collector",
+                "corrected": 0,
+                "correction_id": None,
+                "geometry": LineString([(153.091, -26.651), (153.093, -26.651)]),
+            },
+        ]
+    )
+    fset.roads = pd.concat([fset.roads, dup_roads], ignore_index=True)
+
+    geofence = box(153.085, -26.660, 153.105, -26.645)
+    tpl = get_template("A4", "landscape")
+    style = load_style_yaml()
+    plan = style_plan(fset, geofence, tpl, style, scale_denominator=10000.0)
+    canvas = CairoCanvas()
+    canvas.set_page(tpl.page_mm, bleed_mm=tpl.bleed_mm)
+    fid = canvas.embedded_font(DEFAULT_TTF_PATH)
+    res = place_labels(fset, geofence, plan, tpl, style, canvas, fid, seed=0)
+
+    # Commercial motel is filtered from placed labels
+    assert all(p.text != "Top Spot Motel" for p in res.placed)
+    # Adjacent duplicate road segments of 'Duporth Avenue' are de-duplicated via same_name_spacing
+    duporth_placed = [p for p in res.placed if p.text == "Duporth Avenue"]
+    assert len(duporth_placed) == 1
+    assert any(d.text == "Duporth Avenue" and d.reason == "same_name_spacing" for d in res.dropped)
+
+    composed = compose_furniture(
+        canvas=canvas,
+        plan=plan,
+        labels=res,
+        template=tpl,
+        style=style,
+        font_id=fid,
+        area_name="Maroochydore",
+        edition="2026-10",
+    )
+    assert len(composed.street_index) >= 1
+    assert any(op.get("op") == "text" and "STREET INDEX" in str(op.get("glyphs")) for op in canvas.ops_log)

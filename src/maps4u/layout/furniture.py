@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from maps4u.labels.engine import LabelResult
-from maps4u.layout.templates import PaperTemplate
+from maps4u.layout.templates import PaperTemplate, RectMM
 from maps4u.render.canvas import Canvas, Fill, GlyphPlacement, PathOps, Stroke
 from maps4u.render.style_engine import DrawPlan, LoadedStyle
 
@@ -51,7 +51,7 @@ def compose_furniture(
     watermark_text: str | None = "PROOF — NOT FOR DISTRIBUTION",
     insets_enabled: bool = False,
 ) -> ComposedLayout:
-    del style
+    layers_cfg = style.raw.get("layers", {})
     map_rect = template.map_area_mm
     glyphs: list[GlyphPlacement] = []
 
@@ -125,9 +125,7 @@ def compose_furniture(
         c_idx = min(n_cols - 1, max(0, int((pl.x_mm - map_rect.x) / col_w)))
         r_idx = min(n_rows - 1, max(0, int((pl.y_mm - map_rect.y) / row_h)))
         cell_ref = f"{_col_letters(c_idx)}{r_idx + 1}"
-        street_index.append(
-            GridIndexEntry(name=pl.text, feature_class=pl.feature_class, cell=cell_ref)
-        )
+        street_index.append(GridIndexEntry(name=pl.text, feature_class=pl.feature_class, cell=cell_ref))
 
     # 2. Title Block
     title_rect = template.furniture.get("title_block_mm")
@@ -188,10 +186,68 @@ def compose_furniture(
         for idx, lyr in enumerate(present_layers[:6]):
             ly = round(legend_rect.y + 8.5 + idx * 4.2, 3)
             if ly + 2.0 <= legend_rect.bottom:
+                sx = round(legend_rect.x + 2.5, 3)
+                sy = round(ly - 1.5, 3)
+                sw = 5.5
+                sh = 1.9
+                if lyr == "water":
+                    w_cfg = layers_cfg.get("water", {})
+                    canvas.path(
+                        PathOps(
+                            [("M", (sx, sy)), ("L", (sx + sw, sy)), ("L", (sx + sw, sy + sh)), ("L", (sx, sy + sh)), ("Z", ())]
+                        ),
+                        Stroke(str((w_cfg.get("stroke") or {}).get("color", "#76b4c6")), 0.2),
+                        Fill(str(w_cfg.get("fill", "#aad3df"))),
+                    )
+                elif lyr == "parks":
+                    p_cfg = layers_cfg.get("parks", {})
+                    canvas.path(
+                        PathOps(
+                            [("M", (sx, sy)), ("L", (sx + sw, sy)), ("L", (sx + sw, sy + sh)), ("L", (sx, sy + sh)), ("Z", ())]
+                        ),
+                        Stroke(str((p_cfg.get("stroke") or {}).get("color", "#9ccc9c")), 0.2),
+                        Fill(str(p_cfg.get("fill", "#c8e6c9"))),
+                    )
+                elif lyr == "roads":
+                    mid_y = round(sy + sh * 0.5, 3)
+                    canvas.path(
+                        PathOps([("M", (sx, mid_y)), ("L", (sx + sw, mid_y))]),
+                        Stroke("#4a4a4a", 1.15),
+                        None,
+                    )
+                    canvas.path(
+                        PathOps([("M", (sx, mid_y)), ("L", (sx + sw, mid_y))]),
+                        Stroke("#ffe082", 0.78),
+                        None,
+                    )
+                elif lyr == "water_lines":
+                    wl_cfg = layers_cfg.get("water_lines", {})
+                    mid_y = round(sy + sh * 0.5, 3)
+                    canvas.path(
+                        PathOps([("M", (sx, mid_y)), ("L", (sx + sw, mid_y))]),
+                        Stroke(str((wl_cfg.get("stroke") or {}).get("color", "#76b4c6")), 0.45),
+                        None,
+                    )
+                elif lyr == "coastline":
+                    cl_cfg = layers_cfg.get("coastline", {})
+                    mid_y = round(sy + sh * 0.5, 3)
+                    canvas.path(
+                        PathOps([("M", (sx, mid_y)), ("L", (sx + sw, mid_y))]),
+                        Stroke(str((cl_cfg.get("stroke") or {}).get("color", "#4a8fa3")), 0.40),
+                        None,
+                    )
+                else:
+                    b_cfg = layers_cfg.get("boundaries", {})
+                    mid_y = round(sy + sh * 0.5, 3)
+                    canvas.path(
+                        PathOps([("M", (sx, mid_y)), ("L", (sx + sw, mid_y))]),
+                        Stroke(str((b_cfg.get("stroke") or {}).get("color", "#7c6f64")), 0.35, [1.2, 1.0]),
+                        None,
+                    )
                 glyphs.append(
                     GlyphPlacement(
-                        text=f"- {lyr.replace('_', ' ').title()}",
-                        x_mm=round(legend_rect.x + 2.5, 3),
+                        text=lyr.replace("_", " ").title(),
+                        x_mm=round(legend_rect.x + 9.5, 3),
                         y_mm=ly,
                         angle_deg=0.0,
                         font_id=font_id,
@@ -199,6 +255,70 @@ def compose_furniture(
                         color="#1e293b",
                     )
                 )
+
+    # 3b. Street Index Panel (right sidebar on landscape; below title block on portrait)
+    na_rect_for_idx = template.furniture.get("north_arrow_mm")
+    index_rect: RectMM | None = None
+    if template.orientation == "landscape" and legend_rect is not None:
+        idx_bottom = (na_rect_for_idx.y - 3.0) if na_rect_for_idx is not None else (map_rect.bottom - 2.0)
+        idx_h = round(idx_bottom - (legend_rect.bottom + 2.5), 3)
+        if idx_h >= 18.0:
+            index_rect = RectMM(x=legend_rect.x, y=round(legend_rect.bottom + 2.5, 3), w=legend_rect.w, h=idx_h)
+    elif template.orientation == "portrait" and title_rect is not None:
+        idx_h = round(map_rect.y - (title_rect.bottom + 2.0) - 2.0, 3)
+        if idx_h >= 14.0:
+            index_rect = RectMM(x=title_rect.x, y=round(title_rect.bottom + 2.0, 3), w=title_rect.w, h=idx_h)
+
+    if index_rect is not None and street_index:
+        canvas.path(
+            PathOps(
+                [
+                    ("M", (index_rect.x, index_rect.y)),
+                    ("L", (index_rect.right, index_rect.y)),
+                    ("L", (index_rect.right, index_rect.bottom)),
+                    ("L", (index_rect.x, index_rect.bottom)),
+                    ("Z", ()),
+                ]
+            ),
+            Stroke("#475569", 0.3),
+            Fill("#ffffff"),
+        )
+        glyphs.append(
+            GlyphPlacement(
+                text="STREET INDEX",
+                x_mm=round(index_rect.x + 2.0, 3),
+                y_mm=round(index_rect.y + 3.8, 3),
+                angle_deg=0.0,
+                font_id=font_id,
+                size_mm=1.8,
+                color="#0f172a",
+            )
+        )
+        n_idx_cols = 2 if template.orientation == "landscape" else 3
+        col_idx_w = (index_rect.w - 3.0) / n_idx_cols
+        row_step = 2.5
+        start_y = index_rect.y + 6.8
+        max_rows_per_col = max(1, int((index_rect.bottom - 1.5 - start_y) // row_step))
+        max_chars = 15 if n_idx_cols == 2 else 18
+        road_entries = [e for e in street_index if e.feature_class in ("arterial", "collector", "local", "service")]
+        display_entries = road_entries if road_entries else street_index
+        for e_idx, entry in enumerate(display_entries[: max_rows_per_col * n_idx_cols]):
+            c_i = e_idx // max_rows_per_col
+            r_i = e_idx % max_rows_per_col
+            ex = round(index_rect.x + 1.8 + c_i * col_idx_w, 3)
+            ey = round(start_y + r_i * row_step, 3)
+            short_name = entry.name if len(entry.name) <= max_chars else (entry.name[: max_chars - 1].rstrip() + "…")
+            glyphs.append(
+                GlyphPlacement(
+                    text=f"{short_name} [{entry.cell}]",
+                    x_mm=ex,
+                    y_mm=ey,
+                    angle_deg=0.0,
+                    font_id=font_id,
+                    size_mm=1.35,
+                    color="#1e293b",
+                )
+            )
 
     # 4. Metric Scale Bar
     sb_rect = template.furniture.get("scalebar_mm") or template.furniture.get("scale_bar_mm")
@@ -257,11 +377,7 @@ def compose_furniture(
     # 6. Mandatory ODbL Attribution
     attr_rect = template.furniture.get("attribution_mm")
     attr_x = round(attr_rect.x + 1.0, 3) if attr_rect is not None else round(map_rect.x, 3)
-    attr_y = (
-        round(attr_rect.y + attr_rect.h * 0.70, 3)
-        if attr_rect is not None
-        else round(template.page_h_mm - 3.0, 3)
-    )
+    attr_y = round(attr_rect.y + attr_rect.h * 0.70, 3) if attr_rect is not None else round(template.page_h_mm - 3.0, 3)
     glyphs.append(
         GlyphPlacement(
             text=f"Map data (c) OpenStreetMap contributors (ODbL) | Style {plan.style_ref}",

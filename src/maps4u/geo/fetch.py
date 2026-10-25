@@ -91,22 +91,34 @@ def parse_overpass_bytes(raw_bytes: bytes) -> tuple[FeatureSet, str | None]:
         if etype == "node" and osm_id in nodes_by_id:
             lon, lat = nodes_by_id[osm_id]
             pt = Point(lon, lat)
-            if "place" in tags or "tourism" in tags or tags.get("natural") in ("peak", "cape"):
-                ptype = str(tags.get("place") or tags.get("tourism") or tags.get("natural"))
+            place_val = str(tags.get("place") or "").strip().lower()
+            tourism_val = str(tags.get("tourism") or "").strip().lower()
+            natural_val = str(tags.get("natural") or "").strip().lower()
+            if place_val in ("suburb", "locality", "town", "hamlet", "island", "neighbourhood", "quarter"):
                 places_rows.append(
                     {
                         "osm_id": osm_id,
                         "name": tags.get("name"),
-                        "place_type": ptype,
-                        "importance": PLACE_IMPORTANCE.get(ptype, 50),
-                        "maps4u_class": "suburb" if ptype == "suburb" else "place",
+                        "place_type": place_val,
+                        "importance": PLACE_IMPORTANCE.get(place_val, 50),
+                        "maps4u_class": "suburb" if place_val == "suburb" else "place",
                         "corrected": 0,
                         "correction_id": None,
                         "geometry": pt,
                     }
                 )
-            if "man_made" in tags or "historic" in tags:
-                ltype = str(tags.get("man_made") or tags.get("historic"))
+            if (
+                "man_made" in tags
+                or "historic" in tags
+                or natural_val in ("peak", "cape", "headland")
+                or tourism_val in ("viewpoint", "attraction", "museum")
+            ):
+                ltype = str(
+                    tags.get("man_made")
+                    or tags.get("historic")
+                    or (natural_val if natural_val in ("peak", "cape", "headland") else "")
+                    or tourism_val
+                )
                 landmarks_rows.append(
                     {
                         "osm_id": osm_id,

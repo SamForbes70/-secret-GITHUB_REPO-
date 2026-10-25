@@ -158,6 +158,7 @@ def place_labels(
     repeat_every_mm = float(rules_cfg.get("repeat_every_mm", 120.0))
     max_repeats = int(rules_cfg.get("max_repeats", 3))
     min_font_mm = float(rules_cfg.get("min_font_mm", 1.5))
+    min_same_name_dist_mm = float(rules_cfg.get("min_same_name_distance_mm", 52.0))
 
     band = select_scale_band(style, scale_denominator=12500.0)
     rank_map = {cls_name: idx for idx, cls_name in enumerate(priority_order)}
@@ -175,11 +176,21 @@ def place_labels(
             return ""
         return s
 
-    # 1. Places -> suburb
+    true_place_types = {"suburb", "locality", "town", "hamlet", "island", "neighbourhood", "quarter", "place", ""}
+    scenic_landmark_types = {"peak", "cape", "headland", "viewpoint", "attraction", "museum"}
+
+    # 1. Places -> suburb (or scenic landmark; commercial lodging excluded)
     if not features.places.empty:
         for _, row in features.places.sort_values(by="osm_id").iterrows():
             name = _clean_name(row.get("name"))
             if not name:
+                continue
+            ptype = _clean_name(row.get("place_type")).lower()
+            if ptype in true_place_types:
+                target_cls = "suburb"
+            elif ptype in scenic_landmark_types:
+                target_cls = "landmark"
+            else:
                 continue
             g_utm = shapely_transform(transformer.transform, row.geometry)
             if not clip_poly.Intersects(g_utm) if hasattr(clip_poly, "Intersects") else not clip_poly.intersects(g_utm):
@@ -189,7 +200,7 @@ def place_labels(
             candidates_raw.append(
                 {
                     "text": name,
-                    "feature_class": "suburb",
+                    "feature_class": target_cls,
                     "osm_id": int(row["osm_id"]),
                     "anchors": [(ax, ay, 0.0, 0)],
                     "min_len_mm": 0.0,
@@ -286,11 +297,12 @@ def place_labels(
                 }
             )
 
-    # Stable sort: priority_rank ASC, name ASC, osm_id ASC, seed tie-breaker
+    # Stable sort: priority_rank ASC, name ASC, longest road segment first, osm_id ASC, seed tie-breaker
     candidates_raw.sort(
         key=lambda item: (
             rank_map.get(str(item["feature_class"]), 99),
             str(item["text"]),
+            -round(float(item.get("line_len_mm", 0.0)), 2),
             (int(item["osm_id"]) ^ int(seed)) if seed else int(item["osm_id"]),
         )
     )
@@ -298,10 +310,12 @@ def place_labels(
     placed: list[PlacedLabel] = []
     dropped: list[DroppedLabel] = []
     placed_polys: list[Polygon] = []
+    placed_centers_by_name: dict[str, list[tuple[float, float]]] = {}
 
     for item in candidates_raw:
         f_cls = str(item["feature_class"])
         text = str(item["text"])
+        name_key = text.strip().lower()
         osm_id = int(item["osm_id"])
         p_rank = rank_map.get(f_cls, 99)
 
@@ -346,15 +360,25 @@ def place_labels(
         for ax, ay, angle_deg, r_idx in item["anchors"]:
             anchor_placed = False
             saw_in_bounds = False
+            saw_spacing_block = False
             for pos_name, dx, dy in cand_offsets:
                 lx = round(ax + dx, 4)
                 ly = round(ay + dy, 4)
                 if not _inside_map_rect(lx, ly, w_mm, h_mm, map_rect):
                     continue
                 saw_in_bounds = True
+                cx = lx + w_mm / 2.0
+                cy = ly + h_mm / 2.0
+                if min_same_name_dist_mm > 0.0 and any(
+                    math.hypot(cx - px, cy - py) < min_same_name_dist_mm
+                    for px, py in placed_centers_by_name.get(name_key, ())
+                ):
+                    saw_spacing_block = True
+                    continue
                 c_box = box(lx, ly, lx + w_mm, ly + h_mm)
                 if not _collides_strtree(c_box, placed_polys):
                     placed_polys.append(c_box)
+                    placed_centers_by_name.setdefault(name_key, []).append((cx, cy))
                     placed.append(
                         PlacedLabel(
                             text=text,
@@ -376,8 +400,11 @@ def place_labels(
                     anchor_placed = True
                     any_placed = True
                     break
-            if not anchor_placed and not saw_in_bounds:
-                last_fail_reason = "clipped"
+            if not anchor_placed:
+                if not saw_in_bounds:
+                    last_fail_reason = "clipped"
+                elif saw_spacing_block:
+                    last_fail_reason = "same_name_spacing"
 
         if not any_placed:
             dropped.append(
