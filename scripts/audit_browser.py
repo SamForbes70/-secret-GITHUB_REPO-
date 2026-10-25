@@ -2,6 +2,7 @@
 """Audit-only real Chromium browser walk-through and negative interaction tests."""
 import json
 import re
+
 from playwright.sync_api import expect, sync_playwright
 
 
