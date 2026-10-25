@@ -323,15 +323,46 @@ class CairoCanvas:
 
         for g in self._glyph_records:
             font_px = max(8, int(round(g.size_mm * px_per_mm)))
+            source = Path(str(self.fonts.get(g.font_id, {}).get("path", DEFAULT_TTF_PATH)))
             try:
-                fnt = ImageFont.truetype(str(DEFAULT_TTF_PATH), size=font_px)
+                fnt = ImageFont.truetype(str(source), size=font_px)
             except Exception:
                 fnt = ImageFont.load_default()  # type: ignore[assignment]
-            draw.text(
-                (g.x_mm * px_per_mm, g.y_mm * px_per_mm),
+            anchor_x = g.x_mm * px_per_mm
+            anchor_y = g.y_mm * px_per_mm
+            rgb = _hex_to_rgb_ints(g.color)
+            if abs(g.angle_deg) < 0.0001:
+                draw.text((anchor_x, anchor_y), g.text, fill=rgb, font=fnt, anchor="ls")
+                continue
+
+            # Rotate an isolated glyph image around its baseline anchor,
+            # matching the vector PDF placement instead of losing the angle.
+            left, top, right, bottom = draw.textbbox((0, 0), g.text, font=fnt, anchor="ls")
+            padding = max(8, font_px)
+            width = max(1, right - left + 2 * padding)
+            height = max(1, bottom - top + 2 * padding)
+            text_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+            ImageDraw.Draw(text_layer).text(
+                (padding - left, padding - top),
                 g.text,
-                fill=_hex_to_rgb_ints(g.color),
+                fill=(*rgb, 255),
                 font=fnt,
+                anchor="ls",
+            )
+            angle = -g.angle_deg
+            rotated = text_layer.rotate(angle, expand=True, resample=Image.Resampling.BICUBIC)
+            dx = padding - left - width / 2
+            dy = padding - top - height / 2
+            radians = math.radians(angle)
+            rotated_anchor_x = rotated.width / 2 + dx * math.cos(radians) + dy * math.sin(radians)
+            rotated_anchor_y = rotated.height / 2 - dx * math.sin(radians) + dy * math.cos(radians)
+            img.paste(
+                rotated,
+                (
+                    int(round(anchor_x - rotated_anchor_x)),
+                    int(round(anchor_y - rotated_anchor_y)),
+                ),
+                rotated,
             )
 
         img.save(path, format="PNG")
