@@ -14,10 +14,10 @@ from maps4u.core.models import BBox
 
 CLASS_CLAUSES: dict[str, list[str]] = {
     "roads": ['way["highway"]'],
-    "water": ['way["natural"="water"]', 'way["waterway"="riverbank"]', 'way["landuse"="reservoir"]'],
+    "water": ['way["natural"="water"]', 'way["waterway"="riverbank"]', 'way["landuse"="reservoir"]', 'relation["natural"="water"]', 'relation["waterway"="riverbank"]', 'relation["landuse"="reservoir"]'],
     "water_lines": ['way["waterway"~"^(river|stream|canal)$"]'],
-    "parks": ['way["leisure"~"^(park|nature_reserve)$"]', 'way["landuse"~"^(recreation_ground|forest)$"]'],
-    "boundaries": ['way["boundary"="administrative"]["admin_level"~"^(9|10)$"]'],
+    "parks": ['way["leisure"~"^(park|nature_reserve)$"]', 'way["landuse"~"^(recreation_ground|forest)$"]', 'relation["leisure"~"^(park|nature_reserve)$"]', 'relation["landuse"~"^(recreation_ground|forest)$"]'],
+    "boundaries": ['way["boundary"="administrative"]["admin_level"~"^(9|10)$"]', 'relation["boundary"="administrative"]["admin_level"~"^(9|10)$"]'],
     "coastline": ['way["natural"="coastline"]'],
     "places": ['node["place"~"^(suburb|locality|town|hamlet)$"]', 'node["tourism"]', 'node["natural"~"^(peak|cape)$"]'],
     "landmarks": ['node["man_made"~"^(tower|lighthouse)$"]', 'node["historic"]'],
