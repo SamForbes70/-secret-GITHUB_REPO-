@@ -7,6 +7,7 @@ from typing import Any
 
 import geopandas as gpd
 from shapely.geometry import LineString, Point, Polygon
+from shapely.ops import polygonize, unary_union
 from shapely.validation import make_valid
 
 from maps4u.core.config import Settings
@@ -71,6 +72,8 @@ def parse_overpass_bytes(raw_bytes: bytes) -> tuple[FeatureSet, str | None]:
     for el in elements:
         if el.get("type") == "node" and "lat" in el and "lon" in el:
             nodes_by_id[int(el["id"])] = (float(el["lon"]), float(el["lat"]))
+
+    ways_by_id = {int(el['id']): el for el in elements if el.get('type') == 'way'}
 
     roads_rows: list[dict[str, Any]] = []
     water_rows: list[dict[str, Any]] = []
@@ -224,6 +227,75 @@ def parse_overpass_bytes(raw_bytes: bytes) -> tuple[FeatureSet, str | None]:
                         "geometry": make_valid(LineString(coords)),
                     }
                 )
+
+    # Multipolygon and administrative relations may be assembled from many
+    # member ways. The Overpass recurse query supplies the referenced ways
+    # and their nodes in the same response.
+    for el in elements:
+        if el.get("type") != "relation":
+            continue
+        tags = el.get("tags") or {}
+        kind = str(tags.get("type") or "")
+        if kind not in ("multipolygon", "boundary"):
+            continue
+        outer_lines: list[LineString] = []
+        inner_lines: list[LineString] = []
+        for member in el.get("members", []):
+            if member.get("type") != "way":
+                continue
+            way = ways_by_id.get(int(member.get("ref", 0)))
+            if way is None:
+                continue
+            coords = _way_coords(way, nodes_by_id)
+            if len(coords) < 2:
+                continue
+            role = member.get("role", "outer")
+            if role == "outer":
+                outer_lines.append(LineString(coords))
+            elif role == "inner":
+                inner_lines.append(LineString(coords))
+        if not outer_lines:
+            continue
+        outer_polygons = list(polygonize(outer_lines))
+        if not outer_polygons:
+            continue
+        geom = unary_union(outer_polygons)
+        if inner_lines:
+            inner_polygons = list(polygonize(inner_lines))
+            if inner_polygons:
+                geom = geom.difference(unary_union(inner_polygons))
+        if geom.is_empty:
+            continue
+        geom = make_valid(geom)
+        osm_id = int(el["id"])
+        if (
+            tags.get("natural") == "water"
+            or tags.get("waterway") == "riverbank"
+            or tags.get("landuse") == "reservoir"
+        ):
+            water_rows.append({
+                "osm_id": osm_id, "name": tags.get("name"),
+                "water_type": str(tags.get("water") or tags.get("natural") or "water"),
+                "maps4u_class": "water", "corrected": 0,
+                "correction_id": None, "geometry": geom,
+            })
+        if (
+            tags.get("leisure") in ("park", "nature_reserve")
+            or tags.get("landuse") in ("recreation_ground", "forest")
+        ):
+            parks_rows.append({
+                "osm_id": osm_id, "name": tags.get("name"),
+                "park_type": str(tags.get("leisure") or tags.get("landuse")),
+                "maps4u_class": "park", "corrected": 0,
+                "correction_id": None, "geometry": geom,
+            })
+        if tags.get("boundary") == "administrative":
+            boundaries_rows.append({
+                "osm_id": osm_id, "name": tags.get("name"),
+                "admin_level": str(tags.get("admin_level", "10")),
+                "maps4u_class": "boundary", "corrected": 0,
+                "correction_id": None, "geometry": geom,
+            })
 
     fset = FeatureSet(
         roads=_build_gdf("roads", roads_rows),
