@@ -98,3 +98,16 @@ assert res['matched'] is True
 | `E_OVERPASS_UNAVAILABLE` | Upstream Overpass API rate-limited or unreachable | Wait for automatic backoff (`10s`, `30s`, `90s`) or call `POST /api/jobs/{job_id}/retry`. Cached snapshots avoid repeat network calls. |
 | `E_CORRECTIONS_INVALID` (`422`) | Malformed YAML, unknown action, or blank rejection comment | Validate YAML structure against `docs/corrections-guide.md` and `schemas/corrections.schema.json`. |
 | `E_STATE_ILLEGAL` (`409`) | Attempting to approve/reject a job not in `proof_ready` | Run `POST /api/jobs/{job_id}/run` first and confirm status is `proof_ready`. |
+
+
+## 8. Safe OSM Cache Retention & Purge (`scripts/purge_expired_cache.py`)
+
+To inspect or remove expired (`> MAPS4U_CACHE_MAX_AGE_DAYS`, default `30` days) OpenStreetMap cache snapshots that are **not referenced by any job or bundle manifest** while strictly preserving all snapshots locked by approved (`finalized`) or active jobs:
+
+```bash
+# Safe dry-run (default — prints JSON report without deleting files)
+python -m scripts.purge_expired_cache --dry-run --max-age-days 30
+
+# Execute deletion of expired unreferenced snapshots + stale .latest.json pointers
+python -m scripts.purge_expired_cache --execute --max-age-days 30
+```

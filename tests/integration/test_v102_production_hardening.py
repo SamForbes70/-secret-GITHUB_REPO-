@@ -549,3 +549,151 @@ def test_ops001_meaningful_readiness_checks_db_broker_and_worker(tmp_path: Path)
         assert body_up["ready"] is True
         assert body_up["broker"] is True
         assert body_up["worker"] is True
+
+
+def test_cache_purge_protects_referenced_and_active_snapshots(tmp_path: Path) -> None:
+    """Step C (R-14 / OD-8): Cache purge removes expired unreferenced snapshots while protecting referenced snapshots."""
+    from maps4u.geo.cache import purge_expired_unreferenced_snapshots
+
+    settings = _make_settings(tmp_path)
+    client = TestClient(create_app(settings))
+
+    # 1. Create and finalize a job so its OSM snapshot is referenced by a finalized job
+    p = client.post("/api/projects", json={"area_name": "Purge Test"}).json()
+    rev = client.post(f"/api/projects/{p['project_id']}/geofence", json=MCY_GEOFENCE).json()
+    job_id = client.post(
+        "/api/jobs",
+        json={
+            "project_id": p["project_id"],
+            "geofence_revision": rev["revision_id"],
+            "paper": "A4",
+            "orientation": "landscape",
+            "edition": "purge-1",
+        },
+    ).json()["job_id"]
+    assert client.post(f"/api/jobs/{job_id}/run").status_code == 200
+    assert client.post(f"/api/jobs/{job_id}/approve", json={"note": "Locked for print"}).status_code == 200
+    mf = json.loads((settings.artifact_dir / job_id / "manifest.json").read_text(encoding="utf-8"))
+    locked_snap_id = mf["provenance"]["snapshot_id"]
+    assert locked_snap_id
+
+    # 2. Age the locked snapshot to 120 days old and add two unreferenced snapshots:
+    #    - snap_expired_unref (120 days old, not referenced by any job)
+    #    - snap_fresh_unref (1 day old, not referenced by any job)
+    cache_dir = settings.cache_dir
+    exp_raw = cache_dir / "snap_expired_unref.raw.json"
+    exp_gpkg = cache_dir / "snap_expired_unref.gpkg"
+    exp_raw.write_text('{"elements": []}', encoding="utf-8")
+    exp_gpkg.write_bytes(b"SQLite format 3\x00dummy")
+    stale_ptr = cache_dir / "lookup_stale.latest.json"
+    stale_ptr.write_text('{"lookup_key":"lookup_stale","snapshot_id":"snap_expired_unref"}', encoding="utf-8")
+
+    fresh_raw = cache_dir / "snap_fresh_unref.raw.json"
+    fresh_gpkg = cache_dir / "snap_fresh_unref.gpkg"
+    fresh_raw.write_text('{"elements": []}', encoding="utf-8")
+    fresh_gpkg.write_bytes(b"SQLite format 3\x00dummy")
+
+    with db_session(settings.db_path) as conn:
+        conn.execute(
+            "UPDATE osm_snapshots SET fetched_at = '2020-01-01T00:00:00+00:00' WHERE snapshot_id = ?",
+            (locked_snap_id,),
+        )
+        conn.execute(
+            """
+            INSERT INTO osm_snapshots (
+                snapshot_id, bbox, fetched_at, source_url, raw_path, gpkg_path,
+                osm_base_date, feature_counts_json, sha256
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "snap_expired_unref",
+                "-26.66,153.08,-26.64,153.10",
+                "2020-01-01T00:00:00+00:00",
+                "fixture://expired",
+                str(exp_raw),
+                str(exp_gpkg),
+                "2020-01-01T00:00:00Z",
+                "{}",
+                "deadbeef",
+            ),
+        )
+        conn.execute(
+            """
+            INSERT INTO osm_snapshots (
+                snapshot_id, bbox, fetched_at, source_url, raw_path, gpkg_path,
+                osm_base_date, feature_counts_json, sha256
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "snap_fresh_unref",
+                "-26.66,153.08,-26.64,153.10",
+                "2099-01-01T00:00:00+00:00",
+                "fixture://fresh",
+                str(fresh_raw),
+                str(fresh_gpkg),
+                "2099-01-01T00:00:00Z",
+                "{}",
+                "cafebabe",
+            ),
+        )
+
+    # 3. Dry run first: nothing deleted on disk yet
+    dry_report = purge_expired_unreferenced_snapshots(
+        db_path=settings.db_path,
+        cache_dir=settings.cache_dir,
+        artifact_dir=settings.artifact_dir,
+        max_age_days=30,
+        dry_run=True,
+    )
+    assert dry_report["dry_run"] is True
+    assert "snap_expired_unref" in dry_report["purged_snapshot_ids"]
+    assert locked_snap_id in dry_report["protected_referenced_ids"]
+    assert "snap_fresh_unref" in dry_report["protected_unexpired_ids"]
+    assert exp_raw.is_file()
+    assert exp_gpkg.is_file()
+
+    # 4. Execute live purge: expired unreferenced snapshot + stale pointer are removed, locked & fresh remain intact
+    live_report = purge_expired_unreferenced_snapshots(
+        db_path=settings.db_path,
+        cache_dir=settings.cache_dir,
+        artifact_dir=settings.artifact_dir,
+        max_age_days=30,
+        dry_run=False,
+    )
+    assert live_report["dry_run"] is False
+    assert live_report["purged_snapshot_ids"] == ["snap_expired_unref"]
+    assert locked_snap_id in live_report["protected_referenced_ids"]
+    assert "snap_fresh_unref" in live_report["protected_unexpired_ids"]
+    assert not exp_raw.exists()
+    assert not exp_gpkg.exists()
+    assert not stale_ptr.exists()
+    assert fresh_raw.is_file()
+    assert fresh_gpkg.is_file()
+
+    # 5. Finalized job still reproduces 100% identically after cache purge!
+    r_repro = client.post(f"/api/jobs/{job_id}/reproduce")
+    assert r_repro.status_code == 200
+    assert r_repro.json()["matched"] is True
+
+    # 6. CLI entry point runs cleanly and emits JSON report
+    import subprocess
+    import sys
+
+    cli_proc = subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / "scripts" / "purge_expired_cache.py"),
+            "--data-dir",
+            str(settings.maps4u_data_dir),
+            "--max-age-days",
+            "30",
+            "--dry-run",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert cli_proc.returncode == 0
+    cli_report = json.loads(cli_proc.stdout)
+    assert cli_report["dry_run"] is True
+    assert locked_snap_id in cli_report["protected_referenced_ids"]

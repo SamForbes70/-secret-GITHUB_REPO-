@@ -219,3 +219,113 @@ def lookup_cached_snapshot(
             feature_counts=json.loads(row["feature_counts_json"] or "{}"),
             cache_hit=True,
         )
+
+
+def purge_expired_unreferenced_snapshots(
+    *,
+    db_path: Path,
+    cache_dir: Path,
+    artifact_dir: Path | None = None,
+    max_age_days: int = 30,
+    dry_run: bool = True,
+) -> dict[str, object]:
+    """Purge expired OSM cache snapshots not referenced by any job or bundle manifest (R-14, OD-8)."""
+    run_migrations(db_path)
+    referenced_ids: set[str] = set()
+
+    with db_session(db_path) as conn:
+        bundle_rows = conn.execute("SELECT manifest_json FROM bundles").fetchall()
+        for r in bundle_rows:
+            try:
+                mf = json.loads(str(r["manifest_json"] or "{}"))
+                snap_id = str(
+                    mf.get("provenance", {}).get("snapshot_id")
+                    or mf.get("inputs", {}).get("osm_snapshot_id")
+                    or ""
+                )
+                if snap_id:
+                    referenced_ids.add(snap_id)
+            except Exception:
+                continue
+        event_rows = conn.execute(
+            "SELECT payload_json FROM job_events WHERE payload_json IS NOT NULL AND payload_json LIKE '%snapshot_id%'"
+        ).fetchall()
+        for r in event_rows:
+            try:
+                ev = json.loads(str(r["payload_json"] or "{}"))
+                snap_id = str(ev.get("snapshot_id") or "")
+                if snap_id:
+                    referenced_ids.add(snap_id)
+            except Exception:
+                continue
+
+    if artifact_dir is not None and artifact_dir.is_dir():
+        for mf_path in artifact_dir.glob("*/manifest.json"):
+            try:
+                mf = json.loads(mf_path.read_text(encoding="utf-8"))
+                snap_id = str(
+                    mf.get("provenance", {}).get("snapshot_id")
+                    or mf.get("inputs", {}).get("osm_snapshot_id")
+                    or ""
+                )
+                if snap_id:
+                    referenced_ids.add(snap_id)
+            except Exception:
+                continue
+
+    protected_referenced_ids: list[str] = []
+    protected_unexpired_ids: list[str] = []
+    purged_snapshot_ids: list[str] = []
+    freed_bytes = 0
+
+    with db_session(db_path) as conn:
+        snap_rows = conn.execute("SELECT * FROM osm_snapshots ORDER BY fetched_at ASC").fetchall()
+        for row in snap_rows:
+            snap_id = str(row["snapshot_id"])
+            fetched_at = str(row["fetched_at"])
+            if snap_id in referenced_ids:
+                protected_referenced_ids.append(snap_id)
+                continue
+            if not _is_snapshot_expired(fetched_at, max_age_days):
+                protected_unexpired_ids.append(snap_id)
+                continue
+
+            purged_snapshot_ids.append(snap_id)
+            for p_str in (row["raw_path"], row["gpkg_path"]):
+                if p_str:
+                    p = Path(str(p_str))
+                    if p.is_file():
+                        freed_bytes += p.stat().st_size
+                        if not dry_run:
+                            p.unlink(missing_ok=True)
+            if not dry_run:
+                conn.execute("DELETE FROM osm_snapshots WHERE snapshot_id = ?", (snap_id,))
+
+        remaining_ids = {
+            str(r["snapshot_id"])
+            for r in conn.execute("SELECT snapshot_id FROM osm_snapshots").fetchall()
+        }
+
+    purged_set = set(purged_snapshot_ids)
+    removed_pointers: list[str] = []
+    if cache_dir.is_dir():
+        for ptr_path in sorted(cache_dir.glob("*.latest.json")):
+            try:
+                ptr_data = json.loads(ptr_path.read_text(encoding="utf-8"))
+                target_snap = str(ptr_data.get("snapshot_id") or "")
+            except Exception:
+                target_snap = ""
+            if target_snap in purged_set or (target_snap and target_snap not in remaining_ids):
+                removed_pointers.append(ptr_path.name)
+                if not dry_run:
+                    ptr_path.unlink(missing_ok=True)
+
+    return {
+        "dry_run": dry_run,
+        "max_age_days": max_age_days,
+        "purged_snapshot_ids": purged_snapshot_ids,
+        "protected_referenced_ids": protected_referenced_ids,
+        "protected_unexpired_ids": protected_unexpired_ids,
+        "removed_pointers": removed_pointers,
+        "freed_bytes": freed_bytes,
+    }

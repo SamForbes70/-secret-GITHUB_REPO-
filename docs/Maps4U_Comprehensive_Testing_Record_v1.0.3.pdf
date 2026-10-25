@@ -25,7 +25,7 @@ q
 0.06 0.09 0.16 rg 36 778 523 36 re f
 0.91 0.95 0.99 RG 0.6 w 36 42 523 772 re S
 BT /F2 13.0 Tf 1 1 1 rg 1 0 0 1 46.0 796.0 Tm (MAPS4U STREET MAP SYSTEM \(maps4u-maps\) - COMPREHENSIVE TESTING RECORD) Tj ET
-BT /F1 8.5 Tf 0.82 0.88 0.98 rg 1 0 0 1 46.0 784.0 Tm (Release: v1.0.3  |  Gates G1-G6 + v1.0.1-v1.0.3: ALL PASSED  |  Tests: 96/96 Passed  |  Coverage: 91% \(3,167 stmts\)) Tj ET
+BT /F1 8.5 Tf 0.82 0.88 0.98 rg 1 0 0 1 46.0 784.0 Tm (Release: v1.0.3  |  Gates G1-G6 + v1.0.1-v1.0.3: ALL PASSED  |  Tests: 97/97 Passed  |  Coverage: 91% \(3,238 stmts\)) Tj ET
 BT /F2 10.5 Tf 0.12 0.23 0.54 rg 1 0 0 1 46.0 758.0 Tm (1. EXECUTIVE SMOKE, HARDENING & VERIFICATION SUMMARY) Tj ET
 BT /F3 7.8 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 743.0 Tm (Suite / Check                  | Command                                | Result | Key Verified Metrics) Tj ET
 BT /F3 7.8 Tf 0.4 0.4 0.4 rg 1 0 0 1 46.0 733.0 Tm (-------------------------------+----------------------------------------+--------+------------------------------------------------------------) Tj ET
@@ -34,7 +34,7 @@ BT /F3 7.8 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 711.0 Tm (Byte & Content Determinis
 BT /F3 7.8 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 700.0 Tm (Hot SQLite + Bundle Drill      | python -m scripts.backup_restore_drill | PASS   | restored_ok=true, manifest_sha256=true, pdf_sha256=true) Tj ET
 BT /F3 7.8 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 689.0 Tm (Live Overpass 3-Area Pilots    | python scripts/run_live_pilots.py      | PASS   | 3/3 live QLD coastal proofs finalized & reproduce\(\) matched) Tj ET
 BT /F3 7.8 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 678.0 Tm (Static Linter & Type Check     | ruff check + mypy + pip check          | PASS   | 0 lint errors, 0 type issues, 0 broken requirements) Tj ET
-BT /F3 7.8 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 667.0 Tm (Full Offline Pytest + Coverage | pytest -m 'not live' -v --cov          | PASS   | 96 passed, 0 failed in 46.35s; 91% total line coverage) Tj ET
+BT /F3 7.8 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 667.0 Tm (Full Offline Pytest + Coverage | pytest -m 'not live' -v --cov          | PASS   | 97 passed, 0 failed in 46.35s; 91% total line coverage) Tj ET
 BT /F2 10.5 Tf 0.12 0.23 0.54 rg 1 0 0 1 46.0 643.0 Tm (2. STAGE GATE & RELEASE PROGRESSION \(G1 -> v1.0.3\)) Tj ET
 BT /F3 7.6 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 628.0 Tm (Gate/Ver | Tag            | Scope & Deliverables Verified                                                   | Tests     | Status) Tj ET
 BT /F3 7.6 Tf 0.4 0.4 0.4 rg 1 0 0 1 46.0 618.0 Tm (---------+----------------+---------------------------------------------------------------------------------+-----------+--------) Tj ET
@@ -42,7 +42,7 @@ BT /F3 7.6 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 607.0 Tm (G1-G4    | v0.1.0..v0.4.0 | 
 BT /F3 7.6 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 596.0 Tm (G5-G6    | v1.0.0-mvp     | 11-stage job executor, review/approve lock, reproduce\(\), Dockerfile + compose   | 61 passed | PASSED) Tj ET
 BT /F3 7.6 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 585.0 Tm (v1.0.1   | v1.0.1         | BUG-001..015 remediation: wheel resources, RBAC, project revision scoping       | 83 passed | PASSED) Tj ET
 BT /F3 7.6 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 574.0 Tm (v1.0.2   | v1.0.2         | SEC-001..003, DATA-001..003, QUEUE-001..003, QA-001, OPS-001 hardening          | 94 passed | PASSED) Tj ET
-BT /F3 7.6 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 563.0 Tm (v1.0.3   | v1.0.3         | Same-name spacing \(52mm\), commercial POI filter, legend swatches, Street Index  | 96 passed | PASSED) Tj ET
+BT /F3 7.6 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 563.0 Tm (v1.0.3   | v1.0.3         | Same-name spacing \(52mm\), commercial POI filter, legend swatches, Street Index  | 97 passed | PASSED) Tj ET
 BT /F2 10.5 Tf 0.12 0.23 0.54 rg 1 0 0 1 46.0 539.0 Tm (3. LIVE OPENSTREETMAP OVERPASS THREE-PILOT ACCEPTANCE \(v1.0.3\)) Tj ET
 BT /F3 7.5 Tf 0.1 0.1 0.1 rg 1 0 0 1 46.0 524.0 Tm (Pilot Area                      | Format       | Scale     | Live Payload | Blockers | Overlaps | reproduce\(\) | Locked proof.pdf SHA-256) Tj ET
 BT /F3 7.5 Tf 0.4 0.4 0.4 rg 1 0 0 1 46.0 514.0 Tm (--------------------------------+--------------+-----------+--------------+----------+----------+-------------+----------------------------------) Tj ET
@@ -54,7 +54,7 @@ BT /F3 7.4 Tf 0.15 0.15 0.15 rg 1 0 0 1 46.0 440.0 Tm (- SEC-001..003: Fail-clos
 BT /F3 7.4 Tf 0.15 0.15 0.15 rg 1 0 0 1 46.0 429.0 Tm (- DATA-001..003: Content-addressed OSM snapshots \(SHA-256\(bbox+query+raw_sha256\)\), frozen_inputs/ archive, GeoPackage corruption recovery.) Tj ET
 BT /F3 7.4 Tf 0.15 0.15 0.15 rg 1 0 0 1 46.0 418.0 Tm (- QUEUE-001..003 & OPS-001: Atomic claim_job_for_execution, exponential retry backoff, transient vs terminal Celery errors, deep /readyz.) Tj ET
 BT /F3 7.4 Tf 0.15 0.15 0.15 rg 1 0 0 1 46.0 407.0 Tm (- Cartographic Polish \(v1.0.3\): min_same_name_distance_mm=52.0, commercial motel filtering, visual legend swatches, rendered STREET INDEX.) Tj ET
-BT /F1 8.0 Tf 0.35 0.35 0.35 rg 1 0 0 1 46.0 52.0 Tm (Page 1 of 4  |  Maps4U Street Map System v1.0.3  |  Full 96-Test Pytest & Coverage Log on Pages 2-4) Tj ET
+BT /F1 8.0 Tf 0.35 0.35 0.35 rg 1 0 0 1 46.0 52.0 Tm (Page 1 of 4  |  Maps4U Street Map System v1.0.3  |  Full 97-Test Pytest & Coverage Log on Pages 2-4) Tj ET
 Q
 endstream
 endobj
@@ -68,7 +68,7 @@ q
 0.06 0.09 0.16 rg 36 778 523 36 re f
 0.91 0.95 0.99 RG 0.6 w 36 42 523 772 re S
 BT /F2 12.0 Tf 1 1 1 rg 1 0 0 1 46.0 796.0 Tm (MAPS4U v1.0.3 - PYTEST EXECUTION & COVERAGE RECORD \(PAGE 2 OF 4\)) Tj ET
-BT /F1 8.5 Tf 0.82 0.88 0.98 rg 1 0 0 1 46.0 784.0 Tm (96 Automated Tests \(Unit, Property, API, Golden Layout, v1.0.1 Defects, v1.0.2 Hardening, v1.0.3 Cartography\) + Coverage) Tj ET
+BT /F1 8.5 Tf 0.82 0.88 0.98 rg 1 0 0 1 46.0 784.0 Tm (97 Automated Tests \(Unit, Property, API, Golden Layout, v1.0.1 Defects, v1.0.2 Hardening, v1.0.3 Cartography\) + Coverage) Tj ET
 BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 758.0 Tm (tests/api/test_api_phase0.py::test_system_health_ready_and_meta PASSED   [  1%]) Tj ET
 BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 747.2 Tm (tests/api/test_api_phase0.py::test_projects_and_geofence_revisions_lifecycle PASSED [  2%]) Tj ET
 BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 736.4 Tm (tests/api/test_api_phase0.py::test_illegal_geofence_rejected_with_error_code PASSED [  3%]) Tj ET
@@ -92,7 +92,7 @@ BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 552.8 Tm (tests/integration/test_v1
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 542.0 Tm (tests/integration/test_v101_defect_remediation.py::test_bug002_resource_paths_installation_safe_outside_repo PAS) Tj ET
 BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 531.2 Tm (tests/integration/test_v101_defect_remediation.py::test_bug003_authentication_and_rbac_enforced PASSED [ 22%]) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 520.4 Tm (tests/integration/test_v101_defect_remediation.py::test_bug004_celery_queue_mode_dispatches_and_worker_executes ) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 509.6 Tm (tests/integration/test_v101_defect_remediation.py::test_bug005_redis_env_var_standardised PASSED [ 25%]) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 509.6 Tm (tests/integration/test_v101_defect_remediation.py::test_bug005_redis_env_var_standardised PASSED [ 24%]) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 498.8 Tm (tests/integration/test_v101_defect_remediation.py::test_bug006_duplicate_submission_rejected_and_reproduce_endpo) Tj ET
 BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 488.0 Tm (tests/integration/test_v101_defect_remediation.py::test_bug007_geofence_revision_ids_scoped_per_project PASSED [) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 477.2 Tm (tests/integration/test_v101_defect_remediation.py::test_bug008_failed_qa_and_corrupted_pdf_block_proof_ready_and) Tj ET
@@ -121,17 +121,17 @@ BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 239.6 Tm (tests/integration/test_v1
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 228.8 Tm (tests/integration/test_v102_production_hardening.py::test_queue003_celery_task_outcomes_distinguish_transient_an) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 218.0 Tm (tests/integration/test_v102_production_hardening.py::test_qa001_no_runtime_qa_shortcuts_in_state_transitions PAS) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 207.2 Tm (tests/integration/test_v102_production_hardening.py::test_ops001_meaningful_readiness_checks_db_broker_and_worke) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 196.4 Tm (tests/unit/test_corrections.py::test_apply_valid_corrections_rename_reclass_add_remove PASSED [ 55%]) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 185.6 Tm (tests/unit/test_corrections.py::test_corrections_unknown_osm_id_and_stale_target_warnings PASSED [ 56%]) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 174.8 Tm (tests/unit/test_corrections.py::test_corrections_invalid_yaml_or_schema_raises PASSED [ 57%]) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 164.0 Tm (tests/unit/test_fetch_roads_bbox.py::test_fetch_roads_inside_bounding_box_and_cache PASSED [ 58%]) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 153.2 Tm (tests/unit/test_stage3_canvas_and_style.py::test_s3_t1_cairo_canvas_deterministic_vector_pdf_and_thumbnail PASSE) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 142.4 Tm (tests/unit/test_stage3_canvas_and_style.py::test_s3_t2_load_style_yaml_and_reject_invalid PASSED [ 60%]) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 131.6 Tm (tests/unit/test_stage3_canvas_and_style.py::test_s3_t2_scale_band_selection_and_z_ordered_draw_plan PASSED [ 61%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 120.8 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_s4_t1_label_placement_determinism_collision_and_repeats PAS) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 110.0 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_s4_t2_and_t4_compose_furniture_all_templates_and_insets[A3-) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 196.4 Tm (tests/integration/test_v102_production_hardening.py::test_cache_purge_protects_referenced_and_active_snapshots P) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 185.6 Tm (tests/unit/test_corrections.py::test_apply_valid_corrections_rename_reclass_add_remove PASSED [ 55%]) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 174.8 Tm (tests/unit/test_corrections.py::test_corrections_unknown_osm_id_and_stale_target_warnings PASSED [ 56%]) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 164.0 Tm (tests/unit/test_corrections.py::test_corrections_invalid_yaml_or_schema_raises PASSED [ 57%]) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 153.2 Tm (tests/unit/test_fetch_roads_bbox.py::test_fetch_roads_inside_bounding_box_and_cache PASSED [ 58%]) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 142.4 Tm (tests/unit/test_stage3_canvas_and_style.py::test_s3_t1_cairo_canvas_deterministic_vector_pdf_and_thumbnail PASSE) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 131.6 Tm (tests/unit/test_stage3_canvas_and_style.py::test_s3_t2_load_style_yaml_and_reject_invalid PASSED [ 60%]) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 120.8 Tm (tests/unit/test_stage3_canvas_and_style.py::test_s3_t2_scale_band_selection_and_z_ordered_draw_plan PASSED [ 61%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 110.0 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_s4_t1_label_placement_determinism_collision_and_repeats PAS) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 99.2 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_s4_t2_and_t4_compose_furniture_all_templates_and_insets[A3-) Tj ET
-BT /F1 8.0 Tf 0.35 0.35 0.35 rg 1 0 0 1 46.0 52.0 Tm (Page 2 of 4  |  Maps4U Street Map System v1.0.3  |  96/96 Tests Passed, 91% Coverage) Tj ET
+BT /F1 8.0 Tf 0.35 0.35 0.35 rg 1 0 0 1 46.0 52.0 Tm (Page 2 of 4  |  Maps4U Street Map System v1.0.3  |  97/97 Tests Passed, 91% Coverage) Tj ET
 Q
 endstream
 endobj
@@ -139,76 +139,76 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
 endobj
 11 0 obj
-<< /Length 10142 >>
+<< /Length 10197 >>
 stream
 q
 0.06 0.09 0.16 rg 36 778 523 36 re f
 0.91 0.95 0.99 RG 0.6 w 36 42 523 772 re S
 BT /F2 12.0 Tf 1 1 1 rg 1 0 0 1 46.0 796.0 Tm (MAPS4U v1.0.3 - PYTEST EXECUTION & COVERAGE RECORD \(PAGE 3 OF 4\)) Tj ET
-BT /F1 8.5 Tf 0.82 0.88 0.98 rg 1 0 0 1 46.0 784.0 Tm (96 Automated Tests \(Unit, Property, API, Golden Layout, v1.0.1 Defects, v1.0.2 Hardening, v1.0.3 Cartography\) + Coverage) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 758.0 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_s4_t2_and_t4_compose_furniture_all_templates_and_insets[A4-) Tj ET
+BT /F1 8.5 Tf 0.82 0.88 0.98 rg 1 0 0 1 46.0 784.0 Tm (97 Automated Tests \(Unit, Property, API, Golden Layout, v1.0.1 Defects, v1.0.2 Hardening, v1.0.3 Cartography\) + Coverage) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 758.0 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_s4_t2_and_t4_compose_furniture_all_templates_and_insets[A3-) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 747.2 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_s4_t2_and_t4_compose_furniture_all_templates_and_insets[A4-) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 736.4 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_s4_t2_and_t4_compose_furniture_all_templates_and_insets[A5-) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 736.4 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_s4_t2_and_t4_compose_furniture_all_templates_and_insets[A4-) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 725.6 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_s4_t2_and_t4_compose_furniture_all_templates_and_insets[A5-) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 714.8 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_nan_names_are_filtered_from_labels PASSED [ 69%]) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 704.0 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_v103_same_name_distance_deduplication_and_commercial_poi_fi) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 693.2 Tm (tests/unit/test_state_and_db.py::test_migrations_are_idempotent PASSED   [ 71%]) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 682.4 Tm (tests/unit/test_state_and_db.py::test_state_machine_transitions_and_governed_outputs PASSED [ 72%]) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 671.6 Tm (tests/unit/test_state_and_db.py::test_inline_pipeline_runner_happy_path PASSED [ 73%]) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 660.8 Tm (tests/unit/test_state_and_db.py::test_recording_canvas_deterministic_drawlog PASSED [ 75%]) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 650.0 Tm (tests/unit/test_templates_and_assess.py::test_all_six_paper_templates_resolve_valid_map_area PASSED [ 76%]) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 639.2 Tm (tests/unit/test_templates_and_assess.py::test_assess_known_extent_produces_expected_scale_denominator PASSED [ 7) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 628.4 Tm (tests/unit/test_templates_and_assess.py::test_assess_undersized_font_config_is_blocked_with_remediation_choices ) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 617.6 Tm (tests/unit/test_templates_and_assess.py::test_assess_dense_synthetic_fixture_triggers_density_warning PASSED [ 7) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 606.8 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A3-landscap) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 714.8 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_s4_t2_and_t4_compose_furniture_all_templates_and_insets[A5-) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 704.0 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_nan_names_are_filtered_from_labels PASSED [ 70%]) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 693.2 Tm (tests/unit/test_stage4_labels_and_furniture.py::test_v103_same_name_distance_deduplication_and_commercial_poi_fi) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 682.4 Tm (tests/unit/test_state_and_db.py::test_migrations_are_idempotent PASSED   [ 72%]) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 671.6 Tm (tests/unit/test_state_and_db.py::test_state_machine_transitions_and_governed_outputs PASSED [ 73%]) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 660.8 Tm (tests/unit/test_state_and_db.py::test_inline_pipeline_runner_happy_path PASSED [ 74%]) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 650.0 Tm (tests/unit/test_state_and_db.py::test_recording_canvas_deterministic_drawlog PASSED [ 75%]) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 639.2 Tm (tests/unit/test_templates_and_assess.py::test_all_six_paper_templates_resolve_valid_map_area PASSED [ 76%]) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 628.4 Tm (tests/unit/test_templates_and_assess.py::test_assess_known_extent_produces_expected_scale_denominator PASSED [ 7) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 617.6 Tm (tests/unit/test_templates_and_assess.py::test_assess_undersized_font_config_is_blocked_with_remediation_choices ) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 606.8 Tm (tests/unit/test_templates_and_assess.py::test_assess_dense_synthetic_fixture_triggers_density_warning PASSED [ 7) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 596.0 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A3-landscap) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 585.2 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A3-landscap) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 574.4 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A3-portrait) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 574.4 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A3-landscap) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 563.6 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A3-portrait) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 552.8 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A3-portrait) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 542.0 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A4-landscap) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 542.0 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A3-portrait) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 531.2 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A4-landscap) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 520.4 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A4-landscap) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 509.6 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A4-portrait) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 509.6 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A4-landscap) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 498.8 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A4-portrait) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 488.0 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A4-portrait) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 477.2 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A5-landscap) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 477.2 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A4-portrait) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 466.4 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A5-landscap) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 455.6 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A5-landscap) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 444.8 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A5-portrait) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 444.8 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A5-landscap) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 434.0 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A5-portrait) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 423.2 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A5-portrait) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 412.4 Tm (tests/unit/test_templates_and_assess.py::test_scale_monotonicity_with_geofence_area PASSED [ 98%]) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 401.6 Tm (tests/unit/test_templates_and_assess.py::test_hypothesis_scale_monotonicity_with_area PASSED [100%]) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 390.8 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/render/style_engine.py:241: DeprecationWarning: The 'shape) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 380.0 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:132: DeprecationWarning: The 'shapely.ops) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 369.2 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:195: DeprecationWarning: The 'shapely.ops) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 358.4 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:216: DeprecationWarning: The 'shapely.ops) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 347.6 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:240: DeprecationWarning: The 'shapely.ops) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 336.8 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:265: DeprecationWarning: The 'shapely.ops) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 326.0 Tm (tests/integration/test_stage6_packaging_and_handover.py::test_s6_t3_full_uat_operator_journey) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 412.4 Tm (tests/unit/test_templates_and_assess.py::test_all_pilot_geofences_pass_across_all_paper_orientations[A5-portrait) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 401.6 Tm (tests/unit/test_templates_and_assess.py::test_scale_monotonicity_with_geofence_area PASSED [ 98%]) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 390.8 Tm (tests/unit/test_templates_and_assess.py::test_hypothesis_scale_monotonicity_with_area PASSED [100%]) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 380.0 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/render/style_engine.py:241: DeprecationWarning: The 'shape) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 369.2 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:132: DeprecationWarning: The 'shapely.ops) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 358.4 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:195: DeprecationWarning: The 'shapely.ops) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 347.6 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:216: DeprecationWarning: The 'shapely.ops) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 336.8 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:240: DeprecationWarning: The 'shapely.ops) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 326.0 Tm (  /a0/usr/workdir/maps4u-street-map-system/src/maps4u/labels/engine.py:265: DeprecationWarning: The 'shapely.ops) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 315.2 Tm (tests/integration/test_stage6_packaging_and_handover.py::test_s6_t3_full_uat_operator_journey) Tj ET
 BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 304.4 Tm (tests/integration/test_stage6_packaging_and_handover.py::test_s6_t3_full_uat_operator_journey) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 293.6 Tm (Name                                  Stmts   Miss  Cover) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 282.8 Tm (---------------------------------------------------------) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 272.0 Tm (src/maps4u/__init__.py                    1      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 261.2 Tm (src/maps4u/api/__init__.py                0      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 250.4 Tm (src/maps4u/api/deps.py                  118     19    84%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 239.6 Tm (src/maps4u/api/main.py                   48      1    98%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 228.8 Tm (src/maps4u/api/routes_jobs.py           220     27    88%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 218.0 Tm (src/maps4u/api/routes_projects.py        69      6    91%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 207.2 Tm (src/maps4u/api/routes_styles.py          11      3    73%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 196.4 Tm (src/maps4u/api/routes_system.py          65      6    91%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 185.6 Tm (src/maps4u/api/routes_viability.py       29      3    90%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 174.8 Tm (src/maps4u/bundle/__init__.py             0      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 164.0 Tm (src/maps4u/bundle/archive.py            130     16    88%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 153.2 Tm (src/maps4u/core/__init__.py               0      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 142.4 Tm (src/maps4u/core/config.py                87      2    98%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 131.6 Tm (src/maps4u/core/db.py                    64      1    98%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 120.8 Tm (src/maps4u/core/errors.py                26      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 110.0 Tm (src/maps4u/core/ids.py                   27      3    89%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 99.2 Tm (src/maps4u/core/logging.py               30      6    80%) Tj ET
-BT /F1 8.0 Tf 0.35 0.35 0.35 rg 1 0 0 1 46.0 52.0 Tm (Page 3 of 4  |  Maps4U Street Map System v1.0.3  |  96/96 Tests Passed, 91% Coverage) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 293.6 Tm (tests/integration/test_stage6_packaging_and_handover.py::test_s6_t3_full_uat_operator_journey) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 282.8 Tm (Name                                  Stmts   Miss  Cover) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 272.0 Tm (---------------------------------------------------------) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 261.2 Tm (src/maps4u/__init__.py                    1      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 250.4 Tm (src/maps4u/api/__init__.py                0      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 239.6 Tm (src/maps4u/api/deps.py                  118     19    84%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 228.8 Tm (src/maps4u/api/main.py                   48      1    98%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 218.0 Tm (src/maps4u/api/routes_jobs.py           220     27    88%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 207.2 Tm (src/maps4u/api/routes_projects.py        69      6    91%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 196.4 Tm (src/maps4u/api/routes_styles.py          11      3    73%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 185.6 Tm (src/maps4u/api/routes_system.py          65      6    91%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 174.8 Tm (src/maps4u/api/routes_viability.py       29      3    90%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 164.0 Tm (src/maps4u/bundle/__init__.py             0      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 153.2 Tm (src/maps4u/bundle/archive.py            130     16    88%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 142.4 Tm (src/maps4u/core/__init__.py               0      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 131.6 Tm (src/maps4u/core/config.py                87      2    98%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 120.8 Tm (src/maps4u/core/db.py                    64      1    98%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 110.0 Tm (src/maps4u/core/errors.py                26      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 99.2 Tm (src/maps4u/core/ids.py                   27      3    89%) Tj ET
+BT /F1 8.0 Tf 0.35 0.35 0.35 rg 1 0 0 1 46.0 52.0 Tm (Page 3 of 4  |  Maps4U Street Map System v1.0.3  |  97/97 Tests Passed, 91% Coverage) Tj ET
 Q
 endstream
 endobj
@@ -216,46 +216,47 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 13 0 R >>
 endobj
 13 0 obj
-<< /Length 4399 >>
+<< /Length 4519 >>
 stream
 q
 0.06 0.09 0.16 rg 36 778 523 36 re f
 0.91 0.95 0.99 RG 0.6 w 36 42 523 772 re S
 BT /F2 12.0 Tf 1 1 1 rg 1 0 0 1 46.0 796.0 Tm (MAPS4U v1.0.3 - PYTEST EXECUTION & COVERAGE RECORD \(PAGE 4 OF 4\)) Tj ET
-BT /F1 8.5 Tf 0.82 0.88 0.98 rg 1 0 0 1 46.0 784.0 Tm (96 Automated Tests \(Unit, Property, API, Golden Layout, v1.0.1 Defects, v1.0.2 Hardening, v1.0.3 Cartography\) + Coverage) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 758.0 Tm (src/maps4u/core/models.py                40      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 747.2 Tm (src/maps4u/core/schemas.py               81      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 736.4 Tm (src/maps4u/core/state.py                 95     13    86%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 725.6 Tm (src/maps4u/geo/__init__.py                0      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 714.8 Tm (src/maps4u/geo/acquire.py                34      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 704.0 Tm (src/maps4u/geo/cache.py                 112     17    85%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 693.2 Tm (src/maps4u/geo/corrections.py           120     16    87%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 682.4 Tm (src/maps4u/geo/crs.py                    67     11    84%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 671.6 Tm (src/maps4u/geo/features.py               49     11    78%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 660.8 Tm (src/maps4u/geo/fetch.py                  89      5    94%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 650.0 Tm (src/maps4u/geo/overpass.py               64      7    89%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 639.2 Tm (src/maps4u/labels/__init__.py             0      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 628.4 Tm (src/maps4u/labels/engine.py             241     24    90%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 617.6 Tm (src/maps4u/layout/__init__.py             0      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 606.8 Tm (src/maps4u/layout/furniture.py          164      1    99%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 596.0 Tm (src/maps4u/layout/templates.py          131     11    92%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 585.2 Tm (src/maps4u/qa/__init__.py                 0      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 574.4 Tm (src/maps4u/qa/preflight.py               87      7    92%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 563.6 Tm (src/maps4u/render/__init__.py             0      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 552.8 Tm (src/maps4u/render/assess.py              85      3    96%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 542.0 Tm (src/maps4u/render/cairo_canvas.py       210     13    94%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 531.2 Tm (src/maps4u/render/canvas.py              59      7    88%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 520.4 Tm (src/maps4u/render/proof_renderer.py      64      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 509.6 Tm (src/maps4u/render/style_engine.py       235     28    88%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 498.8 Tm (src/maps4u/worker/__init__.py             0      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 488.0 Tm (src/maps4u/worker/celery_app.py           8      8     0%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 477.2 Tm (src/maps4u/worker/executor.py           131      3    98%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 466.4 Tm (src/maps4u/worker/pipeline.py            36      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 455.6 Tm (src/maps4u/worker/tasks.py               40      0   100%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 444.8 Tm (---------------------------------------------------------) Tj ET
-BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 434.0 Tm (TOTAL                                  3167    278    91%) Tj ET
-BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 423.2 Tm (====================== 96 passed, 594 warnings in 37.59s =======================) Tj ET
-BT /F1 8.0 Tf 0.35 0.35 0.35 rg 1 0 0 1 46.0 52.0 Tm (Page 4 of 4  |  Maps4U Street Map System v1.0.3  |  96/96 Tests Passed, 91% Coverage) Tj ET
+BT /F1 8.5 Tf 0.82 0.88 0.98 rg 1 0 0 1 46.0 784.0 Tm (97 Automated Tests \(Unit, Property, API, Golden Layout, v1.0.1 Defects, v1.0.2 Hardening, v1.0.3 Cartography\) + Coverage) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 758.0 Tm (src/maps4u/core/logging.py               30      6    80%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 747.2 Tm (src/maps4u/core/models.py                40      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 736.4 Tm (src/maps4u/core/schemas.py               81      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 725.6 Tm (src/maps4u/core/state.py                 95     13    86%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 714.8 Tm (src/maps4u/geo/__init__.py                0      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 704.0 Tm (src/maps4u/geo/acquire.py                34      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 693.2 Tm (src/maps4u/geo/cache.py                 183     30    84%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 682.4 Tm (src/maps4u/geo/corrections.py           120     16    87%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 671.6 Tm (src/maps4u/geo/crs.py                    67     11    84%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 660.8 Tm (src/maps4u/geo/features.py               49     11    78%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 650.0 Tm (src/maps4u/geo/fetch.py                  89      5    94%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 639.2 Tm (src/maps4u/geo/overpass.py               64      7    89%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 628.4 Tm (src/maps4u/labels/__init__.py             0      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 617.6 Tm (src/maps4u/labels/engine.py             241     24    90%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 606.8 Tm (src/maps4u/layout/__init__.py             0      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 596.0 Tm (src/maps4u/layout/furniture.py          164      1    99%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 585.2 Tm (src/maps4u/layout/templates.py          131     11    92%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 574.4 Tm (src/maps4u/qa/__init__.py                 0      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 563.6 Tm (src/maps4u/qa/preflight.py               87      7    92%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 552.8 Tm (src/maps4u/render/__init__.py             0      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 542.0 Tm (src/maps4u/render/assess.py              85      3    96%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 531.2 Tm (src/maps4u/render/cairo_canvas.py       210     13    94%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 520.4 Tm (src/maps4u/render/canvas.py              59      7    88%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 509.6 Tm (src/maps4u/render/proof_renderer.py      64      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 498.8 Tm (src/maps4u/render/style_engine.py       235     28    88%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 488.0 Tm (src/maps4u/worker/__init__.py             0      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 477.2 Tm (src/maps4u/worker/celery_app.py           8      8     0%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 466.4 Tm (src/maps4u/worker/executor.py           131      3    98%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 455.6 Tm (src/maps4u/worker/pipeline.py            36      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 444.8 Tm (src/maps4u/worker/tasks.py               40      0   100%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 434.0 Tm (---------------------------------------------------------) Tj ET
+BT /F3 7.1 Tf 0.05 0.35 0.15 rg 1 0 0 1 46.0 423.2 Tm (TOTAL                                  3238    291    91%) Tj ET
+BT /F3 7.1 Tf 0.12 0.12 0.12 rg 1 0 0 1 46.0 412.4 Tm (====================== 97 passed, 624 warnings in 44.88s =======================) Tj ET
+BT /F1 8.0 Tf 0.35 0.35 0.35 rg 1 0 0 1 46.0 52.0 Tm (Page 4 of 4  |  Maps4U Street Map System v1.0.3  |  97/97 Tests Passed, 91% Coverage) Tj ET
 Q
 endstream
 endobj
@@ -273,10 +274,10 @@ xref
 0000006577 00000 n 
 0000017775 00000 n 
 0000017929 00000 n 
-0000028124 00000 n 
-0000028278 00000 n 
+0000028179 00000 n 
+0000028333 00000 n 
 trailer
 << /Size 14 /Root 1 0 R >>
 startxref
-32729
+32904
 %%EOF
