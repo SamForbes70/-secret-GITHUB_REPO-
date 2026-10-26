@@ -741,3 +741,81 @@ def test_generate_custom_map_cli_on_demand_and_style_signoff(tmp_path: Path) -> 
     assert Path(res["proof_pdf"]).is_file()
     assert Path(res["thumb_png"]).is_file()
     assert Path(res["qa_report_md"]).is_file()
+
+
+def test_v110_high_value_upgrades(tmp_path: Path) -> None:
+    """Verify v1.1.0 upgrades: dynamic scale band, vector/raster halos, atomic DB claim, and sync_resources."""
+    import sqlite3
+    import subprocess
+    import sys
+
+    from shapely.geometry import box as shapely_box
+
+    from maps4u.core.errors import Maps4UError
+    from maps4u.core.state import claim_job_in_db
+    from maps4u.geo.fetch import parse_overpass_bytes
+    from maps4u.labels.engine import place_labels
+    from maps4u.layout.templates import get_template
+    from maps4u.render.cairo_canvas import DEFAULT_TTF_PATH, CairoCanvas
+    from maps4u.render.style_engine import load_style_by_ref, style_plan
+
+    # 1. Verify scripts/sync_resources.py CLI
+    sync_proc = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "sync_resources.py"), "--check"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert sync_proc.returncode == 0, sync_proc.stderr
+    sync_res = json.loads(sync_proc.stdout)
+    assert sync_res["in_sync"] is True
+
+    # 2. Verify dynamic scale_denominator in place_labels & halo propagation to CairoCanvas PDF/PNG
+    features, _ = parse_overpass_bytes(FIXTURE_OVERPASS.read_bytes())
+    geofence = shapely_box(153.085, -26.660, 153.105, -26.645)
+    tpl_a3 = get_template("A3", "landscape")
+    style = load_style_by_ref("mcy/v1")
+    plan_detail = style_plan(features, geofence, tpl_a3, style, scale_denominator=7500.0)
+    canvas = CairoCanvas(page_size_mm=tpl_a3.page_mm, bleed_mm=tpl_a3.bleed_mm)
+    fid = canvas.embedded_font(DEFAULT_TTF_PATH)
+    labels_detail = place_labels(features, geofence, plan_detail, tpl_a3, style, canvas, fid)
+    assert labels_detail.stats.get("scale_band") == "detail"
+    assert len(labels_detail.placed) > 0
+    first_lbl = labels_detail.placed[0]
+    assert first_lbl.halo_color == "#ffffff"
+    assert first_lbl.halo_width_mm > 0.0
+
+    canvas.text([first_lbl.to_glyph()])
+    pdf_out = tmp_path / "halo_test.pdf"
+    png_out = tmp_path / "halo_test.png"
+    canvas.save_pdf(pdf_out)
+    canvas.render_thumbnail(png_out, dpi=96)
+    assert b"2 Tr" in pdf_out.read_bytes()
+    assert png_out.is_file() and png_out.stat().st_size > 1000
+
+    # 3. Verify atomic SQLite job claiming (claim_job_in_db)
+    claim_settings = _make_settings(tmp_path / "claim_app")
+    db_path = claim_settings.db_path
+    client = TestClient(create_app(claim_settings))
+    proj = client.post("/api/projects", json={"area_name": "Claim Area"}).json()
+    rev = client.post(f"/api/projects/{proj['project_id']}/geofence", json=MCY_GEOFENCE).json()
+    resp = client.post(
+        "/api/jobs",
+        json={
+            "project_id": proj["project_id"],
+            "geofence_revision": rev["revision_id"],
+            "paper": "A4",
+            "orientation": "landscape",
+            "edition": "claim",
+        },
+    )
+    assert resp.status_code == 201
+    job_id = resp.json()["job_id"]
+    claimed = claim_job_in_db(db_path, job_id)
+    assert claimed["job_id"] == job_id
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("UPDATE jobs SET status = 'rendering' WHERE job_id = ?", (job_id,))
+        conn.commit()
+    with pytest.raises(Maps4UError) as exc_info:
+        claim_job_in_db(db_path, job_id)
+    assert exc_info.value.status_code == 409

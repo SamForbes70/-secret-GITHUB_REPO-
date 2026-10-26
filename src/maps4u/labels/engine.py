@@ -34,6 +34,8 @@ class PlacedLabel:
     color: str
     candidate_pos: str
     repeat_index: int = 0
+    halo_color: str | None = None
+    halo_width_mm: float = 0.0
 
     def to_glyph(self) -> GlyphPlacement:
         return GlyphPlacement(
@@ -44,6 +46,8 @@ class PlacedLabel:
             font_id=self.font_id,
             size_mm=self.size_mm,
             color=self.color,
+            halo_color=self.halo_color,
+            halo_width_mm=self.halo_width_mm,
         )
 
 
@@ -108,8 +112,20 @@ def _inside_map_rect(x_mm: float, y_mm: float, w_mm: float, h_mm: float, map_rec
 def _collides_strtree(candidate_box: Polygon, placed_polys: list[Polygon], clearance_mm: float = 0.35) -> bool:
     if not placed_polys:
         return False
+    c_minx, c_miny, c_maxx, c_maxy = candidate_box.bounds
+    b_minx = c_minx - clearance_mm
+    b_miny = c_miny - clearance_mm
+    b_maxx = c_maxx + clearance_mm
+    b_maxy = c_maxy + clearance_mm
+    nearby = [
+        p
+        for p in placed_polys
+        if not (p.bounds[2] < b_minx or p.bounds[0] > b_maxx or p.bounds[3] < b_miny or p.bounds[1] > b_maxy)
+    ]
+    if not nearby:
+        return False
     buffered = candidate_box.buffer(clearance_mm)
-    tree = STRtree(placed_polys)
+    tree = STRtree(nearby)
     hits = tree.query(buffered, predicate="intersects")
     return len(hits) > 0
 
@@ -124,7 +140,6 @@ def place_labels(
     font_id: str,
     seed: int = 0,
 ) -> LabelResult:
-    del plan
     centroid = geofence_wgs84.centroid
     epsg = utm_epsg_for_lon_lat(float(centroid.x), float(centroid.y))
     transformer = Transformer.from_crs("EPSG:4326", f"EPSG:{epsg}", always_xy=True)
@@ -160,7 +175,7 @@ def place_labels(
     min_font_mm = float(rules_cfg.get("min_font_mm", 1.5))
     min_same_name_dist_mm = float(rules_cfg.get("min_same_name_distance_mm", 52.0))
 
-    band = select_scale_band(style, scale_denominator=12500.0)
+    band = select_scale_band(style, scale_denominator=float(plan.scale_denominator))
     rank_map = {cls_name: idx for idx, cls_name in enumerate(priority_order)}
 
     # Collect raw label features with deterministic ordering
@@ -322,6 +337,9 @@ def place_labels(
         f_spec = fonts_cfg.get(f_cls) or fonts_cfg.get("local", {"size_mm": 2.0, "color": "#1f2937"})
         size_mm = float(f_spec.get("size_mm", 2.0))
         color = str(f_spec.get("color", "#1f2937"))
+        halo_cfg = f_spec.get("halo") or {}
+        halo_color = str(halo_cfg.get("color", "#ffffff")) if halo_cfg else None
+        halo_width_mm = float(halo_cfg.get("width_mm", 0.0)) if halo_cfg else 0.0
 
         if size_mm < min_font_mm:
             dropped.append(
@@ -395,6 +413,8 @@ def place_labels(
                             color=color,
                             candidate_pos=pos_name,
                             repeat_index=r_idx,
+                            halo_color=halo_color,
+                            halo_width_mm=halo_width_mm,
                         )
                     )
                     anchor_placed = True
@@ -422,6 +442,7 @@ def place_labels(
         dropped=dropped,
         seed=seed,
         stats={
+            "scale_band": band.name,
             "total_candidates": len(candidates_raw),
             "placed_count": len(placed),
             "dropped_count": len(dropped),

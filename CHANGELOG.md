@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.1.0] - 2026-10-26
+
+### Added & Upgraded (Precision & Cartographic Upgrade)
+- **Dynamic Scale Band Selection in Label Engine (`src/maps4u/labels/engine.py`)**: Replaced hardcoded `scale_denominator=12500.0` with `float(plan.scale_denominator)` so `A3-landscape` (`1:7,500`) activates the `detail` scale band automatically and records `scale_band` in `LabelResult.stats`.
+- **Vector PDF & Raster PNG White Text Halos (`src/maps4u/render/canvas.py`, `cairo_canvas.py`, `labels/engine.py`)**: Propagated `halo_color` and `halo_width_mm` from `styles/mcy/v1/style.yaml` to `PlacedLabel` and `GlyphPlacement`, rendering true PDF stroke-and-fill halos (`2 Tr`) and Pillow `stroke_width` halos so street names over road casings read with high contrast.
+- **Cross-Process Atomic SQLite Job Claiming (`src/maps4u/core/state.py`, `worker/executor.py`)**: Added `claim_job_in_db()` using `BEGIN IMMEDIATE` + atomic status check/update (`409 E_STATE_ILLEGAL` on concurrent claim) for multi-container Celery worker safety.
+- **Fast Bounding-Box Pre-Filtering & Resource Sync CLI (`scripts/sync_resources.py`, `Makefile`)**: Added bbox pre-filtering before `STRtree` queries in `_collides_strtree()` and added `make sync-resources` (`scripts/sync_resources.py --check` in `make lint`).
+- **Verification (`99/99` Passing Tests)**: Added `test_v110_high_value_upgrades` (`99 passed, 0 failed`) and re-rendered all 5 live coastal street maps.
+
 ## [1.0.4] - 2026-10-25 — On-Demand Custom Map CLI, MCY Style Sign-Off (`OD-1`) & 5-Area Live Showcase
 
 ### Added

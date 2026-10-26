@@ -91,6 +91,11 @@ class CairoCanvas:
                         "font_id": g.font_id,
                         "size_mm": round(g.size_mm, 4),
                         "color": g.color,
+                        **(
+                            {"halo_color": g.halo_color, "halo_width_mm": round(g.halo_width_mm, 4)}
+                            if g.halo_color and g.halo_width_mm > 0
+                            else {}
+                        ),
                     }
                     for g in glyphs
                 ],
@@ -204,11 +209,21 @@ class CairoCanvas:
             cos_a = round(math.cos(rad), 4)
             sin_a = round(math.sin(rad), 4)
             esc = _escape_pdf_text(g.text)
-            lines.append(
-                f"BT /{fid} {size_pt:.3f} Tf {cr:.4f} {cg:.4f} {cb:.4f} rg "
-                f"{cos_a:.4f} {sin_a:.4f} {-sin_a:.4f} {cos_a:.4f} {tx:.3f} {ty:.3f} Tm "
-                f"({esc}) Tj ET"
-            )
+            if g.halo_color and g.halo_width_mm > 0:
+                hr, hg, hb = _hex_to_rgb_floats(g.halo_color)
+                hw_pt = max(0.2, round(g.halo_width_mm * 2.0 * PT_PER_MM, 3))
+                lines.append(
+                    f"BT /{fid} {size_pt:.3f} Tf {cr:.4f} {cg:.4f} {cb:.4f} rg "
+                    f"{hr:.4f} {hg:.4f} {hb:.4f} RG {hw_pt:.3f} w 1 J 1 j 2 Tr "
+                    f"{cos_a:.4f} {sin_a:.4f} {-sin_a:.4f} {cos_a:.4f} {tx:.3f} {ty:.3f} Tm "
+                    f"({esc}) Tj 0 Tr ET"
+                )
+            else:
+                lines.append(
+                    f"BT /{fid} {size_pt:.3f} Tf {cr:.4f} {cg:.4f} {cb:.4f} rg "
+                    f"{cos_a:.4f} {sin_a:.4f} {-sin_a:.4f} {cos_a:.4f} {tx:.3f} {ty:.3f} Tm "
+                    f"({esc}) Tj ET"
+                )
 
         lines.append("Q")
         return ("\n".join(lines) + "\n").encode("latin-1")
@@ -340,12 +355,23 @@ class CairoCanvas:
                 fnt = ImageFont.truetype(str(DEFAULT_TTF_PATH), size=font_px)
             except Exception:
                 fnt = ImageFont.load_default()  # type: ignore[assignment]
-            draw.text(
-                (g.x_mm * px_per_mm, g.y_mm * px_per_mm),
-                g.text,
-                fill=_hex_to_rgb_ints(g.color),
-                font=fnt,
-            )
+            if g.halo_color and g.halo_width_mm > 0:
+                halo_px = max(1, int(round(g.halo_width_mm * px_per_mm)))
+                draw.text(
+                    (g.x_mm * px_per_mm, g.y_mm * px_per_mm),
+                    g.text,
+                    fill=_hex_to_rgb_ints(g.color),
+                    font=fnt,
+                    stroke_width=halo_px,
+                    stroke_fill=_hex_to_rgb_ints(g.halo_color),
+                )
+            else:
+                draw.text(
+                    (g.x_mm * px_per_mm, g.y_mm * px_per_mm),
+                    g.text,
+                    fill=_hex_to_rgb_ints(g.color),
+                    font=fnt,
+                )
 
         img.save(path, format="PNG")
 

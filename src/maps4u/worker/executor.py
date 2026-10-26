@@ -13,10 +13,10 @@ from shapely.geometry import shape
 from maps4u.bundle.archive import write_manifest
 from maps4u.core.config import Settings, resolve_resource_path
 from maps4u.core.db import db_session
-from maps4u.core.errors import E_NOT_FOUND, E_QA_FAILED, E_STATE_ILLEGAL, Maps4UError
+from maps4u.core.errors import E_QA_FAILED, E_STATE_ILLEGAL, Maps4UError
 from maps4u.core.ids import sha256_hex
 from maps4u.core.models import BBox
-from maps4u.core.state import ACTIVE_EXECUTION_STATES, release_job_claim, try_acquire_job_claim
+from maps4u.core.state import claim_job_in_db, release_job_claim, try_acquire_job_claim
 from maps4u.geo.acquire import get_or_fetch
 from maps4u.geo.cache import read_geopackage_snapshot
 from maps4u.geo.corrections import apply_corrections, resolve_safe_corrections_path
@@ -75,19 +75,8 @@ def execute_job_pipeline(job_id: str, settings: Settings) -> dict[str, Any]:
         )
 
     try:
-        with db_session(settings.db_path) as conn:
-            row = conn.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
-            if row is None:
-                raise Maps4UError(E_NOT_FOUND, f"Job {job_id!r} not found", status_code=404)
-            job_data = dict(row)
-            current_status = str(job_data["status"])
-            if current_status in ACTIVE_EXECUTION_STATES or current_status in ("proof_ready", "finalized", "rejected"):
-                raise Maps4UError(
-                    E_STATE_ILLEGAL,
-                    f"Job {job_id!r} cannot be executed from state {current_status!r}",
-                    details={"job_id": job_id, "status": current_status},
-                    status_code=409,
-                )
+        job_data = claim_job_in_db(settings.db_path, job_id)
+        current_status = str(job_data["status"])
 
         geofence_dict = json.loads(str(job_data["geofence_geojson"]))
         geofence_geom = shape(geofence_dict)

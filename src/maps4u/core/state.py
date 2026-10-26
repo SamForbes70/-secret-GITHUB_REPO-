@@ -74,6 +74,54 @@ def release_job_claim(job_id: str) -> None:
         _ACTIVE_CLAIMS.discard(job_id)
 
 
+def claim_job_in_db(db_path: Path, job_id: str) -> dict[str, Any]:
+    """Atomically claim job_id in SQLite via BEGIN IMMEDIATE so multi-process Celery workers cannot race."""
+    now = datetime.now(UTC).isoformat()
+    conn = sqlite3.connect(db_path, timeout=10.0, isolation_level=None)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA busy_timeout = 5000")
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
+        if row is None:
+            conn.execute("ROLLBACK")
+            raise Maps4UError(E_NOT_FOUND, f"Job {job_id!r} not found", status_code=404)
+        job_data = dict(row)
+        current_status = str(job_data["status"])
+        if current_status in ACTIVE_EXECUTION_STATES or current_status in ("proof_ready", "finalized", "rejected"):
+            conn.execute("ROLLBACK")
+            raise Maps4UError(
+                E_STATE_ILLEGAL,
+                f"Job {job_id!r} cannot be executed from state {current_status!r}",
+                details={"job_id": job_id, "status": current_status},
+                status_code=409,
+            )
+        cur = conn.execute(
+            "UPDATE jobs SET updated_at = ? WHERE job_id = ? AND status IN ('created', 'queued')",
+            (now, job_id),
+        )
+        if cur.rowcount == 0:
+            conn.execute("ROLLBACK")
+            raise Maps4UError(
+                E_STATE_ILLEGAL,
+                f"Job {job_id!r} was concurrently claimed by another worker",
+                details={"job_id": job_id},
+                status_code=409,
+            )
+        conn.execute("COMMIT")
+        return job_data
+    except Maps4UError:
+        raise
+    except Exception as exc:
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise Maps4UError(E_STATE_ILLEGAL, f"Failed to claim job {job_id!r}: {exc}", status_code=409) from exc
+    finally:
+        conn.close()
+
+
 def verify_governed_outputs(artifact_dir: Path, job_id: str) -> list[str]:
     """Return any missing or empty governed output filenames for job_id."""
     job_dir = artifact_dir / job_id

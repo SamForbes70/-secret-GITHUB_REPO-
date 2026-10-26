@@ -36,6 +36,8 @@ class GlyphPlacement:
     font_id: str
     size_mm: float
     color: str = "#000000"
+    halo_color: str | None = None
+    halo_width_mm: float = 0.0
 
 
 class Canvas(Protocol):

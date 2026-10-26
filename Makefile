@@ -2,10 +2,14 @@ PYTHON ?= $(shell command -v /opt/venv/bin/python 2>/dev/null || command -v pyth
 HOST ?= 127.0.0.1
 PORT ?= 8080
 
-.PHONY: lint test test-cov run
+.PHONY: lint sync-resources test test-cov run
+
+sync-resources:
+	$(PYTHON) -m scripts.sync_resources
 
 lint:
-	$(PYTHON) -m ruff check src tests
+	$(PYTHON) -m scripts.sync_resources --check
+	$(PYTHON) -m ruff check src tests scripts
 	$(PYTHON) -m mypy src/maps4u/core src/maps4u/geo
 
 test:
